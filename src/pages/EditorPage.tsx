@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
 	DefaultMainMenu,
 	DefaultMainMenuContent,
@@ -7,6 +7,7 @@ import {
 	Tldraw,
 	TldrawUiMenuGroup,
 	TldrawUiMenuItem,
+	createShapeId,
 	getSnapshot,
 	loadSnapshot,
 	parseTldrawJsonFile,
@@ -16,9 +17,12 @@ import {
 } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { getAssetUrlsByImport } from '@tldraw/assets/imports.vite'
+import { IconBack, IconPage, IconPdf } from '../components/icons'
+import { A4_PX, exportCurrentPageToPdf, findA4Frame } from '../lib/pdf'
 import {
 	getProject,
 	persistenceKeyFor,
+	projectMode,
 	renameProject,
 	setProjectThumbnail,
 	takePendingImport,
@@ -70,9 +74,45 @@ function pickAndLoadTldrFile(editor: Editor, onLoaded: () => void) {
 	input.click()
 }
 
+/** במצב דף A4: דואג שתהיה מסגרת דף בעמוד ומגביל את המצלמה סביבה */
+function setUpA4Mode(editor: Editor) {
+	let frame = findA4Frame(editor)
+	if (!frame) {
+		const id = createShapeId()
+		editor.run(
+			() => {
+				editor.createShape({
+					id,
+					type: 'frame',
+					x: 0,
+					y: 0,
+					meta: { a4: true },
+					props: { w: A4_PX.w, h: A4_PX.h, name: 'דף A4' },
+				})
+			},
+			{ history: 'ignore' }
+		)
+		frame = findA4Frame(editor)
+	}
+	const x = frame?.x ?? 0
+	const y = frame?.y ?? 0
+	editor.setCameraOptions({
+		constraints: {
+			bounds: { x, y, w: A4_PX.w, h: A4_PX.h },
+			padding: { x: 48, y: 48 },
+			origin: { x: 0.5, y: 0.5 },
+			initialZoom: 'fit-max-100',
+			baseZoom: 'fit-max-100',
+			behavior: 'contain',
+		},
+	})
+	editor.setCamera(editor.getCamera(), { reset: true })
+}
+
 /** צילום תמונה ממוזערת של העמוד הנוכחי ושמירתה במטא־דאטה של הפרויקט */
 async function captureThumbnail(editor: Editor, projectId: string) {
 	try {
+		if (editor.isDisposed) return
 		const shapeIds = [...editor.getCurrentPageShapeIds()]
 		if (shapeIds.length === 0) {
 			setProjectThumbnail(projectId, null)
@@ -120,9 +160,11 @@ export function EditorPage() {
 		void captureThumbnail(editor, projectId)
 	}, [projectId])
 
-	// צילום תמונה ממוזערת מדי פעם, וכשהחלון נסגר/מוסתר
+	// צילום תמונה ממוזערת מדי פעם, וכשהחלון נסגר/מוסתר.
+	// לא מצלמים ב-cleanup של האפקט — באותו שלב העורך כבר סגור (ה-cleanup של
+	// הרכיב הבן רץ קודם), ולכן המרווח קצר יחסית כדי שהתמונה תישאר עדכנית.
 	useEffect(() => {
-		const interval = setInterval(flushThumbnail, 10_000)
+		const interval = setInterval(flushThumbnail, 6_000)
 		const onHide = () => flushThumbnail()
 		document.addEventListener('visibilitychange', onHide)
 		window.addEventListener('pagehide', onHide)
@@ -130,7 +172,6 @@ export function EditorPage() {
 			clearInterval(interval)
 			document.removeEventListener('visibilitychange', onHide)
 			window.removeEventListener('pagehide', onHide)
-			flushThumbnail()
 		}
 	}, [flushThumbnail])
 
@@ -147,6 +188,10 @@ export function EditorPage() {
 					dirtyRef.current = true
 					touchProject(projectId)
 				}
+			}
+
+			if (projectMode(getProject(projectId)) === 'a4') {
+				setUpA4Mode(editor)
 			}
 
 			// כל שינוי מסמך של המשתמש מעדכן את "עודכן לאחרונה" ומסמן לצילום תמונה
@@ -175,7 +220,7 @@ export function EditorPage() {
 	}
 
 	return (
-		// הדף כולו dir=rtl — ממשק tldraw 3 יורש את הכיוון ומתהפך לעברית;
+		// הדף כולו dir=rtl — ממשק tldraw יורש את הכיוון ומתהפך לעברית;
 		// הקנבס עצמו מבוסס קואורדינטות ואינו מושפע מכיוון הטקסט
 		<div className="editor-page">
 			<Tldraw
@@ -188,6 +233,15 @@ export function EditorPage() {
 	)
 }
 
+async function handleExportPdf(editor: Editor, projectId: string) {
+	const project = getProject(projectId)
+	const ok = await exportCurrentPageToPdf(editor, {
+		fileName: project?.name || 'canvas',
+		mode: projectMode(project),
+	})
+	if (!ok) window.alert('הקנבס ריק — אין מה לייצא')
+}
+
 /** תפריט ראשי של tldraw בתוספת פעולות קובץ של האפליקציה */
 function CustomMainMenu() {
 	const editor = useEditor()
@@ -197,6 +251,13 @@ function CustomMainMenu() {
 	return (
 		<DefaultMainMenu>
 			<TldrawUiMenuGroup id="project-file-actions">
+				<TldrawUiMenuItem
+					id="export-pdf"
+					label="ייצוא ל-PDF"
+					icon="external-link"
+					readonlyOk
+					onSelect={() => void handleExportPdf(editor, projectId)}
+				/>
 				<TldrawUiMenuItem
 					id="save-tldr"
 					label="שמירה לקובץ ‎(.tldr)"
@@ -221,11 +282,24 @@ function CustomMainMenu() {
 	)
 }
 
-/** פאנל עליון: חזרה למסך הפרויקטים + שם הפרויקט (ניתן לעריכה) */
+/** פאנל עליון: חזרה, שם הפרויקט, סוג הקנבס וייצוא PDF */
 function ProjectPanel() {
+	const editor = useEditor()
+	const navigate = useNavigate()
 	const { projectId = '' } = useParams()
 	const project = getProject(projectId)
 	const [name, setName] = useState(project?.name ?? '')
+	const [exporting, setExporting] = useState(false)
+	const mode = projectMode(project)
+
+	// מצלמים תמונה ממוזערת עדכנית לפני היציאה, ורק אז מנווטים
+	const goHome = async () => {
+		try {
+			await captureThumbnail(editor, projectId)
+		} finally {
+			navigate('/')
+		}
+	}
 
 	const commit = () => {
 		if (name.trim() && name.trim() !== project?.name) {
@@ -237,19 +311,14 @@ function ProjectPanel() {
 
 	return (
 		<div className="project-panel" dir="rtl">
-			<Link to="/" className="project-panel-back" title="לכל הפרויקטים">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-					<path
-						d="M9 5l7 7-7 7"
-						stroke="currentColor"
-						strokeWidth="2.4"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					/>
-				</svg>
-				<span>הפרויקטים שלי</span>
-			</Link>
-			<span className="project-panel-divider" />
+			<button
+				className="project-panel-back"
+				title="לכל הפרויקטים"
+				aria-label="לכל הפרויקטים"
+				onClick={() => void goHome()}
+			>
+				<IconBack size={16} />
+			</button>
 			<input
 				className="project-panel-name"
 				value={name}
@@ -264,6 +333,25 @@ function ProjectPanel() {
 					}
 				}}
 			/>
+			{mode === 'a4' && (
+				<span className="project-panel-mode" title="פרויקט במצב דף A4">
+					<IconPage size={13} /> A4
+				</span>
+			)}
+			<button
+				className="project-panel-pdf"
+				disabled={exporting}
+				onClick={async () => {
+					setExporting(true)
+					try {
+						await handleExportPdf(editor, projectId)
+					} finally {
+						setExporting(false)
+					}
+				}}
+			>
+				<IconPdf size={15} /> {exporting ? 'מייצא...' : 'PDF'}
+			</button>
 		</div>
 	)
 }

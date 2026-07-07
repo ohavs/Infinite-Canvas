@@ -1,29 +1,49 @@
+@import '@fontsource/heebo/400.css';
+@import '@fontsource/heebo/500.css';
+@import '@fontsource/heebo/600.css';
+@import '@fontsource/heebo/700.css';
+
 :root {
-	--ic-bg: #f7f7f8;
+	/* שפת העיצוב: שמנת חמה, כרטיסים לבנים מעוגלים, כתום שרוף */
+	--ic-bg: #f3eee6;
 	--ic-surface: #ffffff;
-	--ic-surface-hover: #f2f2f4;
-	--ic-border: #e3e3e7;
-	--ic-text: #1d1d1f;
-	--ic-text-soft: #6f6f78;
-	--ic-accent: #2f80ed;
+	--ic-surface-2: #faf6ef;
+	--ic-surface-hover: #f6f0e7;
+	--ic-border: #e9e1d4;
+	--ic-text: #211c15;
+	--ic-text-soft: #948a7c;
+	--ic-ink: #191510;
+	--ic-ink-text: #fdfaf6;
+	--ic-accent: #e8722a;
+	--ic-accent-deep: #a8480e;
+	--ic-accent-soft: #f9d9ba;
+	--ic-accent-wash: #fbeedd;
 	--ic-accent-text: #ffffff;
-	--ic-danger: #d92d20;
-	--ic-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.06);
-	--ic-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.16);
-	--ic-radius: 12px;
+	--ic-danger: #cf3f1d;
+	--ic-shadow: 0 1px 2px rgba(63, 47, 26, 0.05), 0 10px 30px rgba(63, 47, 26, 0.07);
+	--ic-shadow-lg: 0 18px 50px rgba(63, 47, 26, 0.18);
+	--ic-radius: 20px;
+	--ic-radius-sm: 14px;
+	--ic-radius-pill: 999px;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--ic-bg: #101011;
-		--ic-surface: #1c1c1f;
-		--ic-surface-hover: #26262a;
-		--ic-border: #2e2e33;
-		--ic-text: #f2f2f3;
-		--ic-text-soft: #9d9da6;
-		--ic-accent: #4996f7;
-		--ic-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.35);
-		--ic-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.55);
+		--ic-bg: #17120d;
+		--ic-surface: #221b14;
+		--ic-surface-2: #2a2119;
+		--ic-surface-hover: #2e251c;
+		--ic-border: #382d21;
+		--ic-text: #f3ece1;
+		--ic-text-soft: #a2968a;
+		--ic-ink: #f3ece1;
+		--ic-ink-text: #1c1610;
+		--ic-accent: #f08339;
+		--ic-accent-deep: #f8b276;
+		--ic-accent-soft: #57351a;
+		--ic-accent-wash: #34241582;
+		--ic-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.35);
+		--ic-shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.55);
 	}
 }
 
@@ -41,12 +61,11 @@ body,
 
 body {
 	font-family:
+		'Heebo',
 		'Segoe UI',
 		system-ui,
 		-apple-system,
-		'Heebo',
 		'Arial Hebrew',
-		'Noto Sans Hebrew',
 		Arial,
 		sans-serif;
 	background: var(--ic-bg);
@@ -54,6 +73,7 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
-button {
+button,
+input {
 	font-family: inherit;
 }

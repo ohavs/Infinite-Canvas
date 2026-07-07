@@ -6,12 +6,20 @@
  *   מטפלים גם במסד הזה.
  */
 
+export type CanvasMode = 'infinite' | 'a4'
+
 export interface ProjectMeta {
 	id: string
 	name: string
 	createdAt: number
 	updatedAt: number
 	thumbnail?: string | null
+	/** קנבס אינסופי או דף A4 (פרויקטים ישנים ללא שדה = אינסופי) */
+	mode?: CanvasMode
+}
+
+export function projectMode(project: ProjectMeta | undefined): CanvasMode {
+	return project?.mode === 'a4' ? 'a4' : 'infinite'
 }
 
 const PROJECTS_KEY = 'infinite-canvas:projects'
@@ -50,7 +58,7 @@ function saveProjects(projects: ProjectMeta[]) {
 	window.dispatchEvent(new Event('projects-changed'))
 }
 
-export function createProject(name?: string): ProjectMeta {
+export function createProject(name?: string, mode: CanvasMode = 'infinite'): ProjectMeta {
 	const projects = listProjects()
 	const now = Date.now()
 	const project: ProjectMeta = {
@@ -59,6 +67,7 @@ export function createProject(name?: string): ProjectMeta {
 		createdAt: now,
 		updatedAt: now,
 		thumbnail: null,
+		mode,
 	}
 	saveProjects([project, ...projects])
 	return project
@@ -198,6 +207,7 @@ export async function duplicateProject(id: string): Promise<ProjectMeta | undefi
 		createdAt: now,
 		updatedAt: now,
 		thumbnail: source.thumbnail ?? null,
+		mode: source.mode,
 	}
 	await copyTldrawDb(dbNameFor(source.id), dbNameFor(copy.id))
 	saveProjects([copy, ...listProjects()])
