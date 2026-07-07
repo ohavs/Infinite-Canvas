@@ -3,15 +3,23 @@ import {
 	BorderStyle,
 	Document,
 	ExternalHyperlink,
+	Footer,
+	Header,
 	HeadingLevel,
+	HorizontalPositionAlign,
+	HorizontalPositionRelativeFrom,
 	ImageRun,
 	Packer,
+	PageNumber,
 	Paragraph,
 	ShadingType,
 	Table,
 	TableCell,
 	TableRow,
 	TextRun,
+	TextWrappingSide,
+	TextWrappingType,
+	VerticalPositionRelativeFrom,
 	WidthType,
 	type IParagraphOptions,
 	type IRunOptions,
@@ -67,7 +75,16 @@ function hasRtlChars(text: string): boolean {
 	return /[֐-׿؀-ۿ]/.test(text)
 }
 
-async function dataUrlToImageRun(dataUrl: string): Promise<ImageRun | null> {
+const PX_TO_EMU = 9525
+
+interface ImageAttrs {
+	width?: number | null
+	display?: string | null
+	posX?: number | null
+	posY?: number | null
+}
+
+async function dataUrlToImageRun(dataUrl: string, attrs: ImageAttrs = {}): Promise<ImageRun | null> {
 	try {
 		const match = dataUrl.match(/^data:image\/(png|jpe?g|gif);base64,(.+)$/)
 		if (!match) return null
@@ -75,22 +92,60 @@ async function dataUrlToImageRun(dataUrl: string): Promise<ImageRun | null> {
 		const binary = atob(match[2])
 		const bytes = new Uint8Array(binary.length)
 		for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-		const { width, height } = await new Promise<{ width: number; height: number }>(
-			(resolve, reject) => {
-				const img = new Image()
-				img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
-				img.onerror = () => reject(new Error('image load failed'))
-				img.src = dataUrl
-			}
-		)
-		// התאמה לרוחב עמוד A4 (כ-620px של אזור תוכן)
-		const maxW = 620
-		const scale = Math.min(1, maxW / width)
-		return new ImageRun({
-			type,
-			data: bytes,
-			transformation: { width: Math.round(width * scale), height: Math.round(height * scale) },
+		const natural = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+			const img = new Image()
+			img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+			img.onerror = () => reject(new Error('image load failed'))
+			img.src = dataUrl
 		})
+		// גודל התצוגה: רוחב שנקבע בעורך, מוגבל לרוחב אזור התוכן של A4 (כ-620px)
+		const targetW = Math.min(attrs.width ?? natural.width, 620)
+		const scale = targetW / natural.width
+		const transformation = {
+			width: Math.round(natural.width * scale),
+			height: Math.round(natural.height * scale),
+		}
+
+		// מצבי פריסה מתקדמים ממופים לעיגון צף אמיתי בוורד
+		const display = attrs.display
+		if (display === 'float-right' || display === 'float-left') {
+			return new ImageRun({
+				type,
+				data: bytes,
+				transformation,
+				floating: {
+					horizontalPosition: {
+						relative: HorizontalPositionRelativeFrom.MARGIN,
+						align:
+							display === 'float-right' ? HorizontalPositionAlign.RIGHT : HorizontalPositionAlign.LEFT,
+					},
+					verticalPosition: { relative: VerticalPositionRelativeFrom.PARAGRAPH, offset: 0 },
+					wrap: { type: TextWrappingType.SQUARE, side: TextWrappingSide.LARGEST },
+					margins: { left: 91440, right: 91440, top: 45720, bottom: 45720 },
+				},
+			})
+		}
+		if (display === 'free' && attrs.posX != null && attrs.posY != null) {
+			return new ImageRun({
+				type,
+				data: bytes,
+				transformation,
+				floating: {
+					horizontalPosition: {
+						relative: HorizontalPositionRelativeFrom.PAGE,
+						offset: Math.round(attrs.posX * PX_TO_EMU),
+					},
+					verticalPosition: {
+						relative: VerticalPositionRelativeFrom.PAGE,
+						offset: Math.round(attrs.posY * PX_TO_EMU),
+					},
+					wrap: { type: TextWrappingType.NONE },
+					behindDocument: false,
+					allowOverlap: true,
+				},
+			})
+		}
+		return new ImageRun({ type, data: bytes, transformation })
 	} catch {
 		return null
 	}
@@ -179,7 +234,7 @@ async function inlineChildren(node: PMNode): Promise<(TextRun | ExternalHyperlin
 		if (child.type === 'image') {
 			const src = child.attrs?.src as string | undefined
 			if (src?.startsWith('data:')) {
-				const image = await dataUrlToImageRun(src)
+				const image = await dataUrlToImageRun(src, (child.attrs ?? {}) as ImageAttrs)
 				if (image) out.push(image)
 			}
 		} else {
@@ -297,7 +352,7 @@ async function blocksFromNode(
 		case 'image': {
 			const src = node.attrs?.src as string | undefined
 			if (src?.startsWith('data:')) {
-				const image = await dataUrlToImageRun(src)
+				const image = await dataUrlToImageRun(src, (node.attrs ?? {}) as ImageAttrs)
 				if (image) out.push(new Paragraph({ children: [image] }))
 			}
 			break
@@ -357,13 +412,53 @@ async function listItemBlocks(item: PMNode, ctx: BlockContext): Promise<(Paragra
 	return out
 }
 
-export async function exportDocToDocx(docJson: unknown, fileName: string): Promise<void> {
+export interface DocxExportOptions {
+	/** שורות הכותרת העליונה (חוזרת בכל עמוד): כותרת מודגשת, ואחריה שורות רגילות */
+	headerTitle?: string
+	headerLines?: string[]
+	/** מספרי עמודים בכותרת התחתונה */
+	pageNumbers?: boolean
+}
+
+export async function exportDocToDocx(
+	docJson: unknown,
+	fileName: string,
+	options: DocxExportOptions = {}
+): Promise<void> {
 	const root = docJson as PMNode
 	const children: (Paragraph | Table)[] = []
 	for (const node of root.content ?? []) {
 		children.push(...(await blocksFromNode(node)))
 	}
 	if (children.length === 0) children.push(new Paragraph({}))
+
+	const headerParagraphs: Paragraph[] = []
+	if (options.headerTitle) {
+		headerParagraphs.push(
+			new Paragraph({
+				bidirectional: true,
+				children: [new TextRun({ text: options.headerTitle, bold: true, rightToLeft: true })],
+			})
+		)
+	}
+	for (const line of options.headerLines ?? []) {
+		if (!line.trim()) continue
+		headerParagraphs.push(
+			new Paragraph({
+				bidirectional: true,
+				children: [
+					new TextRun({ text: line, rightToLeft: true, color: '6b6257', size: 20 }),
+				],
+			})
+		)
+	}
+	if (headerParagraphs.length > 0) {
+		headerParagraphs.push(
+			new Paragraph({
+				border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'D8CDBC' } },
+			})
+		)
+	}
 
 	const doc = new Document({
 		numbering: {
@@ -394,6 +489,26 @@ export async function exportDocToDocx(docJson: unknown, fileName: string): Promi
 						margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 },
 					},
 				},
+				headers:
+					headerParagraphs.length > 0
+						? { default: new Header({ children: headerParagraphs }) }
+						: undefined,
+				footers: options.pageNumbers
+					? {
+							default: new Footer({
+								children: [
+									new Paragraph({
+										alignment: AlignmentType.CENTER,
+										children: [
+											new TextRun({ children: [PageNumber.CURRENT] }),
+											new TextRun({ text: ' / ' }),
+											new TextRun({ children: [PageNumber.TOTAL_PAGES] }),
+										],
+									}),
+								],
+							}),
+						}
+					: undefined,
 				children,
 			},
 		],

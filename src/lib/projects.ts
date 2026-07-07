@@ -8,6 +8,21 @@
 
 export type CanvasMode = 'infinite' | 'a4' | 'doc'
 
+/** הגדרות כותרת עליונה/תחתונה למסמכי טקסט (מוצג בדף ובקבצים המיוצאים) */
+export interface DocHeaderSettings {
+	showName: boolean
+	showDate: boolean
+	address: string
+	pageNumbers: boolean
+}
+
+export const DEFAULT_DOC_SETTINGS: DocHeaderSettings = {
+	showName: false,
+	showDate: false,
+	address: '',
+	pageNumbers: false,
+}
+
 export interface ProjectMeta {
 	id: string
 	name: string
@@ -18,6 +33,12 @@ export interface ProjectMeta {
 	mode?: CanvasMode
 	/** תקציר טקסט לתצוגה בכרטיס — למסמכי טקסט */
 	excerpt?: string
+	/** הגדרות כותרת/ייצוא — למסמכי טקסט */
+	docSettings?: DocHeaderSettings
+}
+
+export function getDocSettings(project: ProjectMeta | undefined): DocHeaderSettings {
+	return { ...DEFAULT_DOC_SETTINGS, ...project?.docSettings }
 }
 
 export function projectMode(project: ProjectMeta | undefined): CanvasMode {

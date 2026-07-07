@@ -331,6 +331,7 @@
 .doc-sheet .ProseMirror {
 	outline: none;
 	direction: rtl;
+	position: relative; /* עוגן לתמונות במיקום חופשי */
 	padding: 88px 76px;
 	font-size: 16px;
 	line-height: 1.7;
@@ -429,13 +430,129 @@
 	text-decoration: underline;
 }
 
-.doc-sheet .ProseMirror img {
+/* ---------------------------- תמונות חכמות ---------------------------- */
+
+.doc-img {
+	position: relative;
+	display: inline-block;
 	max-width: 100%;
-	border-radius: 8px;
+	line-height: 0;
+	vertical-align: middle;
 }
 
-.doc-sheet .ProseMirror img.ProseMirror-selectednode {
+.doc-img img {
+	max-width: 100%;
+	border-radius: 6px;
+	display: block;
+	user-select: none;
+}
+
+.doc-img-selected > img {
 	outline: 2.5px solid var(--ic-accent);
+	outline-offset: 1px;
+}
+
+.doc-img-float-right {
+	float: right;
+	margin: 4px 0 10px 14px;
+	max-width: 58%;
+}
+
+.doc-img-float-left {
+	float: left;
+	margin: 4px 14px 10px 0;
+	max-width: 58%;
+}
+
+.doc-img-block {
+	display: block;
+	margin: 10px auto;
+}
+
+.doc-img-free {
+	position: absolute;
+	z-index: 12;
+	margin: 0;
+}
+
+.doc-img-free > img {
+	cursor: grab;
+	box-shadow: 0 2px 14px rgba(63, 47, 26, 0.12);
+}
+
+.doc-img-dragging > img {
+	cursor: grabbing;
+	opacity: 0.85;
+}
+
+/* ידיות שינוי גודל */
+.doc-img-handle {
+	position: absolute;
+	bottom: -6px;
+	width: 13px;
+	height: 13px;
+	border-radius: 50%;
+	background: var(--ic-accent);
+	border: 2px solid #fff;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+	z-index: 15;
+	touch-action: none;
+}
+
+.doc-img-handle-l {
+	left: -6px;
+	cursor: nesw-resize;
+}
+
+.doc-img-handle-r {
+	right: -6px;
+	cursor: nwse-resize;
+}
+
+/* סרגל צף מעל תמונה נבחרת */
+.doc-img-toolbar {
+	position: absolute;
+	top: -44px;
+	inset-inline-start: 0;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	background: var(--ic-surface);
+	border: 1px solid var(--ic-border);
+	border-radius: 999px;
+	box-shadow: var(--ic-shadow-lg);
+	padding: 4px 6px;
+	z-index: 30;
+	line-height: normal;
+	white-space: nowrap;
+}
+
+.doc-img-btn {
+	display: grid;
+	place-items: center;
+	width: 28px;
+	height: 28px;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--ic-text);
+	cursor: pointer;
+}
+
+.doc-img-btn:hover {
+	background: var(--ic-surface-hover);
+}
+
+.doc-img-btn.active {
+	background: var(--ic-accent);
+	color: #fff;
+}
+
+.doc-img-toolbar-sep {
+	width: 1px;
+	height: 16px;
+	background: var(--ic-border);
+	margin: 0 3px;
 }
 
 .doc-sheet .ProseMirror ul,
@@ -511,13 +628,180 @@
 	cursor: col-resize;
 }
 
+/* --------------------------- כותרת עליונה בדף --------------------------- */
+
+.doc-sheet-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px;
+	padding: 44px 76px 0;
+	font-size: 12.5px;
+	color: var(--ic-text-soft);
+}
+
+.doc-sheet-header-main {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--ic-border);
+	flex: 1;
+}
+
+.doc-sheet-header-main strong {
+	color: var(--ic-text);
+	font-size: 14px;
+}
+
+.doc-sheet-header-date {
+	white-space: nowrap;
+	padding-top: 2px;
+}
+
+.doc-sheet.has-header .ProseMirror {
+	padding-top: 28px;
+	min-height: 1000px;
+}
+
+/* ----------------------------- דיאלוג חתימה ----------------------------- */
+
+.doc-sig-modal {
+	max-width: 580px;
+}
+
+.doc-sig-canvas {
+	width: 100%;
+	height: 200px;
+	background: var(--ic-surface-2);
+	border: 1.5px dashed var(--ic-border);
+	border-radius: 12px;
+	cursor: crosshair;
+	touch-action: none;
+}
+
+.doc-sig-controls {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 12px;
+}
+
+.doc-sig-colors {
+	display: inline-flex;
+	gap: 6px;
+	margin-inline-end: auto;
+}
+
+.doc-sig-color {
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	border: 2px solid transparent;
+	cursor: pointer;
+}
+
+.doc-sig-color.active {
+	border-color: var(--ic-accent);
+	box-shadow: 0 0 0 2px var(--ic-surface), 0 0 0 4px var(--ic-accent);
+}
+
+/* רשימת חתימות שמורות בתפריט */
+.doc-sig-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.doc-sig-item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.doc-sig-thumb {
+	flex: 1;
+	background: var(--ic-surface-2);
+	border: 1px solid var(--ic-border);
+	border-radius: 9px;
+	padding: 6px 10px;
+	cursor: pointer;
+	display: grid;
+	place-items: center;
+}
+
+.doc-sig-thumb:hover {
+	border-color: var(--ic-accent);
+}
+
+.doc-sig-thumb img {
+	max-height: 34px;
+	max-width: 150px;
+}
+
+.doc-sig-delete {
+	border: none;
+	background: transparent;
+	color: var(--ic-text-soft);
+	cursor: pointer;
+	border-radius: 7px;
+	padding: 6px;
+	display: grid;
+	place-items: center;
+}
+
+.doc-sig-delete:hover {
+	color: var(--ic-danger);
+	background: var(--ic-surface-hover);
+}
+
+/* צ'קבוקסים בהגדרות */
+.doc-check {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	font-size: 14px;
+	padding: 7px 2px;
+	cursor: pointer;
+}
+
+.doc-check input {
+	accent-color: var(--ic-accent);
+	width: 16px;
+	height: 16px;
+	cursor: pointer;
+}
+
+.doc-address-input {
+	resize: vertical;
+	min-height: 70px;
+	font-family: inherit;
+	line-height: 1.6;
+}
+
 /* ------------------------------- הדפסה ------------------------------- */
 
 @media print {
 	.doc-topbar,
 	.doc-toolbar,
-	.doc-bubble {
+	.doc-bubble,
+	.doc-img-toolbar,
+	.doc-img-handle {
 		display: none !important;
+	}
+
+	.doc-img-selected > img {
+		outline: none;
+	}
+
+	.doc-sheet-header {
+		padding: 0 0 14px;
+		color: #555;
+	}
+
+	.doc-sheet.has-header .ProseMirror {
+		padding-top: 0;
 	}
 
 	.doc-page {

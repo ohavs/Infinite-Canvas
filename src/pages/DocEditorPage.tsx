@@ -2,7 +2,6 @@ import CharacterCount from '@tiptap/extension-character-count'
 import { Color } from '@tiptap/extension-color'
 import FontFamily from '@tiptap/extension-font-family'
 import Highlight from '@tiptap/extension-highlight'
-import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import Subscript from '@tiptap/extension-subscript'
@@ -25,18 +24,25 @@ import {
 import StarterKit from '@tiptap/starter-kit'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { IconBack, IconPdf } from '../components/icons'
+import { IconBack, IconPdf, IconTrash } from '../components/icons'
 import { exportDocToDocx } from '../lib/docx-export'
 import {
+	getDocSettings,
 	getProject,
 	loadDocContent,
 	renameProject,
 	saveDocContent,
 	setProjectExcerpt,
 	touchProject,
+	updateProject,
+	type DocHeaderSettings,
 } from '../lib/projects'
+import { ResizableImage } from '../lib/resizable-image'
+import { deleteSignature, listSignatures, saveSignature, trimCanvas } from '../lib/signatures'
 import { FontSize, LineHeight, ParagraphDirection } from '../lib/tiptap-extensions'
 import './doc-editor.css'
+
+const headerDateFormat = new Intl.DateTimeFormat('he-IL', { dateStyle: 'long' })
 
 /* ------------------------------ קבועים ------------------------------ */
 
@@ -101,6 +107,9 @@ export function DocEditorPage() {
 	const navigate = useNavigate()
 	const project = getProject(projectId)
 	const [name, setName] = useState(project?.name ?? '')
+	const [settings, setSettings] = useState<DocHeaderSettings>(() => getDocSettings(project))
+	const [showSettings, setShowSettings] = useState(false)
+	const [showSignaturePad, setShowSignaturePad] = useState(false)
 	const saveTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
 
 	const editor = useEditor({
@@ -126,7 +135,7 @@ export function DocEditorPage() {
 			TableRow,
 			TableCell,
 			TableHeader,
-			Image.configure({ allowBase64: true }),
+			ResizableImage,
 		],
 		content: (loadDocContent(projectId) as object | null) ?? undefined,
 		autofocus: 'end',
@@ -181,12 +190,32 @@ export function DocEditorPage() {
 
 	const handleExportDocx = useCallback(async () => {
 		if (!editor) return
-		await exportDocToDocx(editor.getJSON(), project?.name || 'document')
-	}, [editor, project?.name])
+		const headerLines = [
+			...(settings.showDate ? [headerDateFormat.format(Date.now())] : []),
+			...settings.address.split('\n').filter((l) => l.trim()),
+		]
+		await exportDocToDocx(editor.getJSON(), project?.name || 'document', {
+			headerTitle: settings.showName ? project?.name : undefined,
+			headerLines,
+			pageNumbers: settings.pageNumbers,
+		})
+	}, [editor, project?.name, settings])
+
+	const insertSignature = useCallback(
+		(src: string) => {
+			editor
+				?.chain()
+				.focus()
+				.insertContent({ type: 'image', attrs: { src, width: 170 } })
+				.run()
+		},
+		[editor]
+	)
 
 	if (!project) return null
 
 	const words = editor?.storage.characterCount.words() ?? 0
+	const hasHeader = settings.showName || settings.showDate || Boolean(settings.address.trim())
 
 	return (
 		<div className="doc-page">
@@ -206,6 +235,13 @@ export function DocEditorPage() {
 				/>
 				<span className="doc-words">{words} מילים</span>
 				<div className="doc-topbar-actions">
+					<button
+						className="doc-btn doc-btn-ghost"
+						title="הגדרות המסמך"
+						onClick={() => setShowSettings(true)}
+					>
+						<GearGlyph /> הגדרות
+					</button>
 					<button className="doc-btn doc-btn-ghost" onClick={() => window.print()}>
 						<IconPdf size={15} /> PDF / הדפסה
 					</button>
@@ -215,7 +251,13 @@ export function DocEditorPage() {
 				</div>
 			</header>
 
-			{editor && <Toolbar editor={editor} />}
+			{editor && (
+				<Toolbar
+					editor={editor}
+					onInsertSignature={insertSignature}
+					onNewSignature={() => setShowSignaturePad(true)}
+				/>
+			)}
 
 			{editor && (
 				<BubbleMenu
@@ -251,9 +293,255 @@ export function DocEditorPage() {
 
 			<main className="doc-scroll">
 				<div className="doc-sheet-wrap">
-					<EditorContent editor={editor} className="doc-sheet" />
+					<div className={`doc-sheet ${hasHeader ? 'has-header' : ''}`}>
+						{hasHeader && (
+							<div className="doc-sheet-header" dir="rtl" contentEditable={false}>
+								<div className="doc-sheet-header-main">
+									{settings.showName && <strong>{project.name}</strong>}
+									{settings.address
+										.split('\n')
+										.filter((l) => l.trim())
+										.map((line, i) => (
+											<span key={i}>{line}</span>
+										))}
+								</div>
+								{settings.showDate && (
+									<span className="doc-sheet-header-date">{headerDateFormat.format(Date.now())}</span>
+								)}
+							</div>
+						)}
+						<EditorContent editor={editor} />
+					</div>
 				</div>
 			</main>
+
+			{showSettings && (
+				<DocSettingsDialog
+					settings={settings}
+					onClose={() => setShowSettings(false)}
+					onSave={(next) => {
+						setSettings(next)
+						updateProject(projectId, { docSettings: next })
+						setShowSettings(false)
+					}}
+				/>
+			)}
+
+			{showSignaturePad && (
+				<SignatureDialog
+					onClose={() => setShowSignaturePad(false)}
+					onSave={(dataUrl) => {
+						saveSignature(dataUrl)
+						insertSignature(dataUrl)
+						setShowSignaturePad(false)
+					}}
+				/>
+			)}
+		</div>
+	)
+}
+
+/* ---------------------------- הגדרות המסמך ---------------------------- */
+
+function DocSettingsDialog({
+	settings,
+	onClose,
+	onSave,
+}: {
+	settings: DocHeaderSettings
+	onClose: () => void
+	onSave: (next: DocHeaderSettings) => void
+}) {
+	const [draft, setDraft] = useState(settings)
+
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') onClose()
+		}
+		window.addEventListener('keydown', onKey)
+		return () => window.removeEventListener('keydown', onKey)
+	}, [onClose])
+
+	return (
+		<div className="modal-backdrop" onClick={onClose}>
+			<div className="modal" role="dialog" aria-modal onClick={(e) => e.stopPropagation()}>
+				<h3>הגדרות המסמך</h3>
+				<p className="modal-text">
+					מה יופיע בראש הדף — גם על המסך, גם בהדפסה/PDF וגם בקובץ ה-Word (שם חוזר בכל עמוד).
+				</p>
+				<label className="doc-check">
+					<input
+						type="checkbox"
+						checked={draft.showName}
+						onChange={(e) => setDraft({ ...draft, showName: e.target.checked })}
+					/>
+					שם הפרויקט
+				</label>
+				<label className="doc-check">
+					<input
+						type="checkbox"
+						checked={draft.showDate}
+						onChange={(e) => setDraft({ ...draft, showDate: e.target.checked })}
+					/>
+					התאריך של היום
+				</label>
+				<label className="doc-check">
+					<input
+						type="checkbox"
+						checked={draft.pageNumbers}
+						onChange={(e) => setDraft({ ...draft, pageNumbers: e.target.checked })}
+					/>
+					מספרי עמודים (בקובץ ה-Word)
+				</label>
+				<span className="field-label">כתובת / פרטים נוספים</span>
+				<textarea
+					className="text-input doc-address-input"
+					rows={3}
+					placeholder={'למשל:\nרחוב הדוגמה 12, תל אביב\n050-0000000'}
+					value={draft.address}
+					onChange={(e) => setDraft({ ...draft, address: e.target.value })}
+				/>
+				<div className="modal-actions">
+					<button className="btn btn-ghost" onClick={onClose}>
+						ביטול
+					</button>
+					<button className="btn btn-accent" onClick={() => onSave(draft)}>
+						שמירה
+					</button>
+				</div>
+			</div>
+		</div>
+	)
+}
+
+/* ------------------------------ ציור חתימה ------------------------------ */
+
+function SignatureDialog({
+	onClose,
+	onSave,
+}: {
+	onClose: () => void
+	onSave: (dataUrl: string) => void
+}) {
+	const canvasRef = useRef<HTMLCanvasElement>(null)
+	const [color, setColor] = useState('#1b2a56')
+	const [dirty, setDirty] = useState(false)
+	const drawing = useRef(false)
+	const last = useRef<{ x: number; y: number } | null>(null)
+	const fileInputRef = useRef<HTMLInputElement>(null)
+
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') onClose()
+		}
+		window.addEventListener('keydown', onKey)
+		return () => window.removeEventListener('keydown', onKey)
+	}, [onClose])
+
+	const pointOf = (e: React.PointerEvent) => {
+		const canvas = canvasRef.current!
+		const rect = canvas.getBoundingClientRect()
+		return {
+			x: ((e.clientX - rect.left) * canvas.width) / rect.width,
+			y: ((e.clientY - rect.top) * canvas.height) / rect.height,
+		}
+	}
+
+	const onPointerDown = (e: React.PointerEvent) => {
+		e.preventDefault()
+		;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+		drawing.current = true
+		last.current = pointOf(e)
+	}
+
+	const onPointerMove = (e: React.PointerEvent) => {
+		if (!drawing.current || !last.current) return
+		const ctx = canvasRef.current?.getContext('2d')
+		if (!ctx) return
+		const point = pointOf(e)
+		ctx.strokeStyle = color
+		ctx.lineWidth = 2.6
+		ctx.lineCap = 'round'
+		ctx.lineJoin = 'round'
+		ctx.beginPath()
+		ctx.moveTo(last.current.x, last.current.y)
+		ctx.lineTo(point.x, point.y)
+		ctx.stroke()
+		last.current = point
+		if (!dirty) setDirty(true)
+	}
+
+	const onPointerUp = () => {
+		drawing.current = false
+		last.current = null
+	}
+
+	const clear = () => {
+		const canvas = canvasRef.current
+		canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
+		setDirty(false)
+	}
+
+	return (
+		<div className="modal-backdrop" onClick={onClose}>
+			<div className="modal doc-sig-modal" role="dialog" aria-modal onClick={(e) => e.stopPropagation()}>
+				<h3>חתימה חדשה</h3>
+				<p className="modal-text">ציירו את החתימה עם העכבר או האצבע. היא תישמר לשימוש חוזר.</p>
+				<canvas
+					ref={canvasRef}
+					className="doc-sig-canvas"
+					width={520}
+					height={200}
+					onPointerDown={onPointerDown}
+					onPointerMove={onPointerMove}
+					onPointerUp={onPointerUp}
+				/>
+				<div className="doc-sig-controls">
+					<span className="doc-sig-colors">
+						{['#1b2a56', '#211c15'].map((c) => (
+							<button
+								key={c}
+								className={`doc-sig-color ${color === c ? 'active' : ''}`}
+								style={{ background: c }}
+								title={c === '#211c15' ? 'דיו שחור' : 'דיו כחול'}
+								onClick={() => setColor(c)}
+							/>
+						))}
+					</span>
+					<button className="btn btn-ghost" onClick={clear}>
+						ניקוי
+					</button>
+					<button className="btn btn-ghost" onClick={() => fileInputRef.current?.click()}>
+						העלאת תמונת חתימה
+					</button>
+				</div>
+				<div className="modal-actions">
+					<button className="btn btn-ghost" onClick={onClose}>
+						ביטול
+					</button>
+					<button
+						className="btn btn-accent"
+						disabled={!dirty}
+						onClick={() => canvasRef.current && onSave(trimCanvas(canvasRef.current))}
+					>
+						שמירה והוספה למסמך
+					</button>
+				</div>
+				<input
+					ref={fileInputRef}
+					type="file"
+					accept="image/png,image/jpeg,image/webp"
+					hidden
+					onChange={(e) => {
+						const file = e.target.files?.[0]
+						e.target.value = ''
+						if (!file) return
+						const reader = new FileReader()
+						reader.onload = () => onSave(reader.result as string)
+						reader.readAsDataURL(file)
+					}}
+				/>
+			</div>
 		</div>
 	)
 }
@@ -271,8 +559,17 @@ function toggleLink(editor: TipTapEditor) {
 	editor.chain().focus().extendMarkRange('link').setLink({ href }).run()
 }
 
-function Toolbar({ editor }: { editor: TipTapEditor }) {
+function Toolbar({
+	editor,
+	onInsertSignature,
+	onNewSignature,
+}: {
+	editor: TipTapEditor
+	onInsertSignature: (src: string) => void
+	onNewSignature: () => void
+}) {
 	const [openMenu, setOpenMenu] = useState<string | null>(null)
+	const [signatures, setSignatures] = useState<string[]>(() => listSignatures())
 	const imageInputRef = useRef<HTMLInputElement>(null)
 
 	useEffect(() => {
@@ -513,6 +810,51 @@ function Toolbar({ editor }: { editor: TipTapEditor }) {
 			<button className="doc-tool" title="הוספת תמונה" onClick={() => imageInputRef.current?.click()}>
 				🖼
 			</button>
+			<Dropdown
+				id="signature"
+				openMenu={openMenu}
+				setOpenMenu={(id) => {
+					if (id === 'signature') setSignatures(listSignatures())
+					setOpenMenu(id)
+				}}
+				button={<SignatureGlyph />}
+				title="חתימה"
+			>
+				{signatures.length > 0 && (
+					<div className="doc-sig-list">
+						{signatures.map((src, i) => (
+							<div key={i} className="doc-sig-item">
+								<button
+									className="doc-sig-thumb"
+									title="הוספת החתימה למסמך"
+									onClick={() => {
+										onInsertSignature(src)
+										setOpenMenu(null)
+									}}
+								>
+									<img src={src} alt={`חתימה ${i + 1}`} />
+								</button>
+								<button
+									className="doc-sig-delete"
+									title="מחיקת החתימה השמורה"
+									onClick={() => setSignatures(deleteSignature(i))}
+								>
+									<IconTrash size={13} />
+								</button>
+							</div>
+						))}
+					</div>
+				)}
+				<button
+					className="doc-menu-item"
+					onClick={() => {
+						setOpenMenu(null)
+						onNewSignature()
+					}}
+				>
+					✒️ חתימה חדשה...
+				</button>
+			</Dropdown>
 			<Dropdown id="table" openMenu={openMenu} setOpenMenu={setOpenMenu} button={<TableGlyph />} title="טבלה">
 				<button
 					className="doc-menu-item"
@@ -752,6 +1094,24 @@ function EraserGlyph() {
 			<path d="M6 20h14" />
 			<path d="M9.5 19.5l-5-5a2 2 0 010-2.8l7-7a2 2 0 012.8 0l4.5 4.5a2 2 0 010 2.8l-7.5 7.5z" />
 			<path d="M8 9l7 7" />
+		</svg>
+	)
+}
+
+function GearGlyph() {
+	return (
+		<svg {...svgProps(15)}>
+			<circle cx="12" cy="12" r="3.2" />
+			<path d="M12 2.8l1.2 2.6a7 7 0 012.3 1l2.8-.8 1.6 2.8-2 2.1a7 7 0 010 2.6l2 2.1-1.6 2.8-2.8-.8a7 7 0 01-2.3 1L12 21.2l-1.2-2.6a7 7 0 01-2.3-1l-2.8.8-1.6-2.8 2-2.1a7 7 0 010-2.6l-2-2.1 1.6-2.8 2.8.8a7 7 0 012.3-1L12 2.8z" strokeWidth="1.5" />
+		</svg>
+	)
+}
+
+function SignatureGlyph() {
+	return (
+		<svg {...svgProps()}>
+			<path d="M3 19c3-1 4-6 5.5-11 .8-2.6 3-2.6 3.2 0 .2 3-1.7 7.5-.2 8.5 1.3.9 2.5-1.5 3.5-3 .8-1.2 2-1 2 .5s1.5 1.5 3 .5" strokeWidth="1.8" />
+			<path d="M3 22h18" strokeWidth="1.6" opacity="0.5" />
 		</svg>
 	)
 }
