@@ -11,7 +11,7 @@ name: Deploy to Firebase Hosting
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'claude/tldraw-hebrew-clone-e4l5k2']
   workflow_dispatch:
 
 jobs:
