@@ -1,8 +1,10 @@
 import { jsPDF } from 'jspdf'
-import { Box, Editor } from 'tldraw'
+import { Box, Editor, type TLShape } from 'tldraw'
 
 /** מידות דף A4 ביחידות קנבס (96dpi): 210×297 מ"מ */
 export const A4_PX = { w: 794, h: 1123 }
+/** רווח אנכי בין דפי A4 על הקנבס */
+export const A4_GAP = 56
 const PX_TO_MM = 25.4 / 96
 
 function blobToDataUrl(blob: Blob): Promise<string> {
@@ -14,42 +16,47 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 	})
 }
 
-/** מאתר את מסגרת ה-A4 של העמוד הנוכחי (אם קיימת) */
-export function findA4Frame(editor: Editor) {
+/** כל מסגרות ה-A4 בעמוד הנוכחי, ממוינות מלמעלה למטה */
+export function findA4Frames(editor: Editor): TLShape[] {
 	return editor
 		.getCurrentPageShapes()
-		.find((s) => s.type === 'frame' && (s.meta as { a4?: boolean } | undefined)?.a4)
+		.filter((s) => s.type === 'frame' && (s.meta as { a4?: boolean } | undefined)?.a4)
+		.sort((a, b) => a.y - b.y)
 }
 
 /**
  * ייצוא העמוד הנוכחי ל-PDF.
- * במצב דף A4 — מייצא בדיוק את שטח הדף לקובץ A4 סטנדרטי;
+ * במצב דפי A4 — כל דף על הקנבס הופך לעמוד A4 בקובץ;
  * במצב קנבס אינסופי — הקובץ נחתך לגבולות התוכן.
  * מחזיר false אם אין מה לייצא.
  */
 export async function exportCurrentPageToPdf(
 	editor: Editor,
-	opts: { fileName: string; mode: 'infinite' | 'a4' }
+	opts: { fileName: string; mode: 'infinite' | 'a4' | 'doc' }
 ): Promise<boolean> {
 	const shapeIds = [...editor.getCurrentPageShapeIds()]
 	if (shapeIds.length === 0) return false
 
 	if (opts.mode === 'a4') {
-		const frame = findA4Frame(editor)
-		const bounds = frame
-			? new Box(frame.x, frame.y, A4_PX.w, A4_PX.h)
-			: new Box(0, 0, A4_PX.w, A4_PX.h)
-		// JPEG — קטן משמעותית מ-PNG בתוך PDF, והרקע ממילא אטום
-		const { blob } = await editor.toImage(shapeIds, {
-			format: 'jpeg',
-			quality: 0.85,
-			background: true,
-			bounds,
-			padding: 0,
-			scale: 2,
-		})
+		const frames = findA4Frames(editor)
+		const pageBoxes = frames.length
+			? frames.map((f) => new Box(f.x, f.y, A4_PX.w, A4_PX.h))
+			: [new Box(0, 0, A4_PX.w, A4_PX.h)]
+
 		const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-		pdf.addImage(await blobToDataUrl(blob), 'JPEG', 0, 0, 210, 297)
+		for (let i = 0; i < pageBoxes.length; i++) {
+			// JPEG — קטן משמעותית מ-PNG בתוך PDF, והרקע ממילא אטום
+			const { blob } = await editor.toImage(shapeIds, {
+				format: 'jpeg',
+				quality: 0.85,
+				background: true,
+				bounds: pageBoxes[i],
+				padding: 0,
+				scale: 2,
+			})
+			if (i > 0) pdf.addPage('a4', 'portrait')
+			pdf.addImage(await blobToDataUrl(blob), 'JPEG', 0, 0, 210, 297)
+		}
 		pdf.save(`${opts.fileName}.pdf`)
 		return true
 	}

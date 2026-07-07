@@ -1,0 +1,555 @@
+.doc-page {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	background: var(--ic-bg);
+}
+
+/* ------------------------------ סרגל עליון ------------------------------ */
+
+.doc-topbar {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 12px 16px 0;
+	padding: 8px 12px;
+	background: var(--ic-surface);
+	border: 1px solid var(--ic-border);
+	border-radius: var(--ic-radius);
+	box-shadow: var(--ic-shadow);
+	flex-wrap: wrap;
+}
+
+.doc-back {
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	border: none;
+	border-radius: 50%;
+	background: var(--ic-accent);
+	color: #fff;
+	cursor: pointer;
+	flex-shrink: 0;
+	transition: background 0.15s;
+}
+
+.doc-back:hover {
+	background: var(--ic-accent-deep);
+}
+
+.doc-name {
+	border: none;
+	background: transparent;
+	color: var(--ic-text);
+	font-size: 15px;
+	font-weight: 700;
+	font-family: inherit;
+	padding: 7px 10px;
+	border-radius: 10px;
+	min-width: 120px;
+	width: 220px;
+	outline: none;
+}
+
+.doc-name:hover,
+.doc-name:focus {
+	background: var(--ic-surface-hover);
+}
+
+.doc-words {
+	font-size: 12.5px;
+	color: var(--ic-text-soft);
+	background: var(--ic-surface-2);
+	border: 1px solid var(--ic-border);
+	border-radius: 999px;
+	padding: 5px 12px;
+	white-space: nowrap;
+}
+
+.doc-topbar-actions {
+	margin-inline-start: auto;
+	display: flex;
+	gap: 8px;
+}
+
+.doc-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	border: none;
+	border-radius: 999px;
+	padding: 9px 16px;
+	font-size: 13px;
+	font-weight: 700;
+	font-family: inherit;
+	cursor: pointer;
+	transition: background 0.15s;
+}
+
+.doc-btn-ink {
+	background: var(--ic-ink);
+	color: var(--ic-ink-text);
+}
+
+.doc-btn-ink:hover {
+	background: var(--ic-accent-deep);
+	color: #fff;
+}
+
+.doc-btn-ghost {
+	background: var(--ic-surface);
+	color: var(--ic-text);
+	border: 1px solid var(--ic-border);
+}
+
+.doc-btn-ghost:hover {
+	background: var(--ic-surface-hover);
+}
+
+/* ------------------------------ סרגל כלים ------------------------------ */
+
+.doc-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex-wrap: wrap;
+	margin: 10px 16px 0;
+	padding: 6px 8px;
+	background: var(--ic-surface);
+	border: 1px solid var(--ic-border);
+	border-radius: var(--ic-radius);
+	box-shadow: var(--ic-shadow);
+	position: relative;
+	z-index: 20;
+}
+
+.doc-tool {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	min-width: 32px;
+	height: 32px;
+	padding: 0 7px;
+	border: none;
+	border-radius: 9px;
+	background: transparent;
+	color: var(--ic-text);
+	font-size: 14px;
+	font-family: inherit;
+	cursor: pointer;
+	transition: background 0.12s;
+}
+
+.doc-tool:hover:not(:disabled) {
+	background: var(--ic-surface-hover);
+}
+
+.doc-tool.active {
+	background: var(--ic-accent-wash);
+	color: var(--ic-accent-deep);
+}
+
+.doc-tool:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+
+.doc-tool small {
+	font-size: 8px;
+	opacity: 0.6;
+}
+
+.doc-sep {
+	width: 1px;
+	height: 20px;
+	background: var(--ic-border);
+	margin: 0 5px;
+	flex-shrink: 0;
+}
+
+.doc-select {
+	height: 32px;
+	border: 1px solid var(--ic-border);
+	border-radius: 9px;
+	background: var(--ic-surface-2);
+	color: var(--ic-text);
+	font-size: 13px;
+	font-family: inherit;
+	padding: 0 8px;
+	cursor: pointer;
+	outline: none;
+	max-width: 150px;
+}
+
+.doc-select-narrow {
+	max-width: 64px;
+}
+
+.doc-select:focus {
+	border-color: var(--ic-accent);
+}
+
+.doc-color-glyph {
+	font-weight: 800;
+	border-bottom: 3px solid;
+	line-height: 1.1;
+	padding: 0 1px;
+}
+
+.doc-hl-glyph {
+	font-weight: 800;
+	background: #fff2a8;
+	border-radius: 3px;
+	padding: 0 4px;
+	color: #211c15;
+}
+
+/* תפריטים נפתחים */
+.doc-dropdown {
+	position: relative;
+	display: inline-flex;
+}
+
+.doc-dropdown-panel {
+	position: absolute;
+	top: calc(100% + 6px);
+	inset-inline-start: 0;
+	background: var(--ic-surface);
+	border: 1px solid var(--ic-border);
+	border-radius: 12px;
+	box-shadow: var(--ic-shadow-lg);
+	padding: 8px;
+	min-width: 160px;
+	z-index: 50;
+}
+
+.doc-palette {
+	display: grid;
+	grid-template-columns: repeat(5, 26px);
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.doc-swatch {
+	width: 26px;
+	height: 26px;
+	border-radius: 8px;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	cursor: pointer;
+	transition: transform 0.1s;
+}
+
+.doc-swatch:hover {
+	transform: scale(1.12);
+}
+
+.doc-menu-item {
+	display: block;
+	width: 100%;
+	border: none;
+	background: transparent;
+	color: var(--ic-text);
+	font-size: 13.5px;
+	font-family: inherit;
+	text-align: start;
+	padding: 8px 10px;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+.doc-menu-item:hover:not(:disabled) {
+	background: var(--ic-surface-hover);
+}
+
+.doc-menu-item:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+.doc-menu-item.danger {
+	color: var(--ic-danger);
+}
+
+/* ------------------------------ תפריט צף ------------------------------ */
+
+.doc-bubble {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	background: var(--ic-surface);
+	border: 1px solid var(--ic-border);
+	border-radius: 999px;
+	box-shadow: var(--ic-shadow-lg);
+	padding: 4px 6px;
+}
+
+/* ------------------------------ גיליון A4 ------------------------------ */
+
+.doc-scroll {
+	flex: 1;
+	overflow: auto;
+	padding: 22px 16px 80px;
+}
+
+.doc-sheet-wrap {
+	max-width: 794px;
+	margin: 0 auto;
+}
+
+.doc-sheet {
+	background: #ffffff;
+	border: 1px solid var(--ic-border);
+	border-radius: 4px;
+	box-shadow: var(--ic-shadow-lg);
+	min-height: 1123px;
+	/* קו עדין שמסמן מעבר עמוד כל גובה A4 */
+	background-image: repeating-linear-gradient(
+		to bottom,
+		transparent 0,
+		transparent 1122px,
+		#eadfcd 1122px,
+		#eadfcd 1123px
+	);
+}
+
+@media (prefers-color-scheme: dark) {
+	.doc-sheet {
+		background: #211d18;
+		background-image: repeating-linear-gradient(
+			to bottom,
+			transparent 0,
+			transparent 1122px,
+			#3a3229 1122px,
+			#3a3229 1123px
+		);
+	}
+}
+
+.doc-sheet .ProseMirror {
+	outline: none;
+	direction: rtl;
+	padding: 88px 76px;
+	font-size: 16px;
+	line-height: 1.7;
+	color: var(--ic-text);
+	caret-color: var(--ic-accent);
+	min-height: 1123px;
+}
+
+.doc-sheet .ProseMirror p.is-editor-empty:first-child::before {
+	content: attr(data-placeholder);
+	float: right;
+	color: var(--ic-text-soft);
+	pointer-events: none;
+	height: 0;
+}
+
+.doc-sheet .ProseMirror ::selection {
+	background: color-mix(in srgb, var(--ic-accent) 25%, transparent);
+}
+
+.doc-sheet .ProseMirror h1 {
+	font-size: 30px;
+	margin: 0.7em 0 0.35em;
+	line-height: 1.3;
+}
+
+.doc-sheet .ProseMirror h2 {
+	font-size: 24px;
+	margin: 0.7em 0 0.35em;
+	line-height: 1.3;
+}
+
+.doc-sheet .ProseMirror h3 {
+	font-size: 19px;
+	margin: 0.7em 0 0.3em;
+}
+
+.doc-sheet .ProseMirror p {
+	margin: 0.45em 0;
+}
+
+.doc-sheet .ProseMirror blockquote {
+	border-inline-start: 3px solid var(--ic-accent);
+	margin: 0.6em 0;
+	padding: 2px 14px;
+	color: color-mix(in srgb, var(--ic-text) 78%, var(--ic-text-soft));
+	background: var(--ic-accent-wash);
+	border-radius: 6px;
+}
+
+.doc-sheet .ProseMirror pre {
+	background: #f2ede3;
+	border: 1px solid var(--ic-border);
+	border-radius: 10px;
+	padding: 12px 14px;
+	direction: ltr;
+	text-align: left;
+	font-family: 'Courier New', monospace;
+	font-size: 13.5px;
+	overflow-x: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+	.doc-sheet .ProseMirror pre {
+		background: #2a251d;
+	}
+}
+
+.doc-sheet .ProseMirror code {
+	background: #f2ede3;
+	border-radius: 4px;
+	padding: 1px 5px;
+	font-family: 'Courier New', monospace;
+	font-size: 0.9em;
+}
+
+@media (prefers-color-scheme: dark) {
+	.doc-sheet .ProseMirror code {
+		background: #2a251d;
+	}
+}
+
+.doc-sheet .ProseMirror pre code {
+	background: transparent;
+	padding: 0;
+}
+
+.doc-sheet .ProseMirror hr {
+	border: none;
+	border-top: 1.5px solid var(--ic-border);
+	margin: 1.2em 0;
+}
+
+.doc-sheet .ProseMirror a {
+	color: var(--ic-accent-deep);
+	text-decoration: underline;
+}
+
+.doc-sheet .ProseMirror img {
+	max-width: 100%;
+	border-radius: 8px;
+}
+
+.doc-sheet .ProseMirror img.ProseMirror-selectednode {
+	outline: 2.5px solid var(--ic-accent);
+}
+
+.doc-sheet .ProseMirror ul,
+.doc-sheet .ProseMirror ol {
+	padding-inline-start: 24px;
+	margin: 0.45em 0;
+}
+
+/* רשימת משימות */
+.doc-sheet .ProseMirror ul[data-type='taskList'] {
+	list-style: none;
+	padding-inline-start: 4px;
+}
+
+.doc-sheet .ProseMirror ul[data-type='taskList'] li {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+}
+
+.doc-sheet .ProseMirror ul[data-type='taskList'] li > label {
+	margin-top: 4px;
+}
+
+.doc-sheet .ProseMirror ul[data-type='taskList'] input[type='checkbox'] {
+	accent-color: var(--ic-accent);
+	width: 15px;
+	height: 15px;
+	cursor: pointer;
+}
+
+.doc-sheet .ProseMirror ul[data-type='taskList'] li[data-checked='true'] > div {
+	text-decoration: line-through;
+	color: var(--ic-text-soft);
+}
+
+/* טבלאות */
+.doc-sheet .ProseMirror table {
+	border-collapse: collapse;
+	width: 100%;
+	margin: 0.8em 0;
+	table-layout: fixed;
+}
+
+.doc-sheet .ProseMirror th,
+.doc-sheet .ProseMirror td {
+	border: 1px solid var(--ic-border);
+	padding: 7px 10px;
+	vertical-align: top;
+	position: relative;
+}
+
+.doc-sheet .ProseMirror th {
+	background: var(--ic-surface-2);
+	font-weight: 700;
+}
+
+.doc-sheet .ProseMirror .selectedCell::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: color-mix(in srgb, var(--ic-accent) 14%, transparent);
+	pointer-events: none;
+}
+
+.doc-sheet .ProseMirror .column-resize-handle {
+	position: absolute;
+	inset-inline-end: -2px;
+	top: 0;
+	bottom: 0;
+	width: 4px;
+	background: var(--ic-accent);
+	cursor: col-resize;
+}
+
+/* ------------------------------- הדפסה ------------------------------- */
+
+@media print {
+	.doc-topbar,
+	.doc-toolbar,
+	.doc-bubble {
+		display: none !important;
+	}
+
+	.doc-page {
+		position: static;
+		background: #fff;
+	}
+
+	.doc-scroll {
+		overflow: visible;
+		padding: 0;
+	}
+
+	.doc-sheet-wrap {
+		max-width: none;
+	}
+
+	.doc-sheet {
+		border: none;
+		box-shadow: none;
+		border-radius: 0;
+		background-image: none;
+		min-height: 0;
+	}
+
+	.doc-sheet .ProseMirror {
+		padding: 0;
+		min-height: 0;
+		color: #000;
+	}
+
+	@page {
+		size: A4;
+		margin: 20mm 18mm;
+	}
+}

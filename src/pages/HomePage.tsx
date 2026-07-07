@@ -11,6 +11,7 @@ import {
 	IconPencil,
 	IconPlus,
 	IconShield,
+	IconTextDoc,
 	IconTrash,
 	Logo,
 } from '../components/icons'
@@ -179,17 +180,31 @@ export function HomePage() {
 									onClick={() => navigate(`/p/${project.id}`)}
 								>
 									<div className="project-thumb">
-										{project.thumbnail ? (
+										{mode === 'doc' ? (
+											project.excerpt ? (
+												<div className="doc-card-preview" dir="rtl">
+													{project.excerpt}
+												</div>
+											) : (
+												<span className="project-thumb-empty">
+													<IconTextDoc size={30} />
+												</span>
+											)
+										) : project.thumbnail ? (
 											<img src={project.thumbnail} alt="" loading="lazy" />
 										) : (
 											<span className="project-thumb-empty">
 												{mode === 'a4' ? <IconPage size={30} /> : <IconInfinity size={32} />}
 											</span>
 										)}
-										<span className={`mode-chip ${mode === 'a4' ? 'mode-chip-a4' : ''}`}>
+										<span className={`mode-chip ${mode !== 'infinite' ? 'mode-chip-a4' : ''}`}>
 											{mode === 'a4' ? (
 												<>
-													<IconPage size={12} /> דף A4
+													<IconPage size={12} /> דפי A4
+												</>
+											) : mode === 'doc' ? (
+												<>
+													<IconTextDoc size={12} /> מסמך
 												</>
 											) : (
 												<>
@@ -357,8 +372,21 @@ function NewProjectDialog({
 						<span className="mode-option-icon">
 							<IconPage size={24} />
 						</span>
-						<strong>דף A4</strong>
-						<span>עמוד מסודר, מוכן להדפסה ולייצוא PDF</span>
+						<strong>דפי A4</strong>
+						<span>ציור על עמודים מסודרים, מוכן ל-PDF</span>
+					</button>
+					<button
+						type="button"
+						role="radio"
+						aria-checked={mode === 'doc'}
+						className={`mode-option ${mode === 'doc' ? 'mode-option-active' : ''}`}
+						onClick={() => setMode('doc')}
+					>
+						<span className="mode-option-icon">
+							<IconTextDoc size={24} />
+						</span>
+						<strong>מסמך טקסט</strong>
+						<span>עורך כתיבה מלא כמו וורד, עם ייצוא ל-Word</span>
 					</button>
 				</div>
 				<div className="modal-actions">

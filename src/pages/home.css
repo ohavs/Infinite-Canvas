@@ -333,6 +333,24 @@
 	opacity: 0.7;
 }
 
+/* תצוגה מקדימה של טקסט המסמך בכרטיס */
+.doc-card-preview {
+	position: absolute;
+	inset: 12px;
+	background: var(--ic-surface);
+	border: 1px solid var(--ic-border);
+	border-radius: 8px;
+	padding: 12px 14px;
+	font-size: 11px;
+	line-height: 1.65;
+	color: var(--ic-text-soft);
+	overflow: hidden;
+	white-space: pre-wrap;
+	word-break: break-word;
+	text-align: start;
+	mask-image: linear-gradient(to bottom, black 62%, transparent 96%);
+}
+
 .mode-chip {
 	position: absolute;
 	top: 10px;
@@ -507,7 +525,7 @@
 
 .mode-picker {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
+	grid-template-columns: repeat(3, 1fr);
 	gap: 10px;
 }
 

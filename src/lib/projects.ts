@@ -6,7 +6,7 @@
  *   מטפלים גם במסד הזה.
  */
 
-export type CanvasMode = 'infinite' | 'a4'
+export type CanvasMode = 'infinite' | 'a4' | 'doc'
 
 export interface ProjectMeta {
 	id: string
@@ -14,12 +14,16 @@ export interface ProjectMeta {
 	createdAt: number
 	updatedAt: number
 	thumbnail?: string | null
-	/** קנבס אינסופי או דף A4 (פרויקטים ישנים ללא שדה = אינסופי) */
+	/** קנבס אינסופי, דפי A4 לציור, או מסמך טקסט (פרויקטים ישנים ללא שדה = אינסופי) */
 	mode?: CanvasMode
+	/** תקציר טקסט לתצוגה בכרטיס — למסמכי טקסט */
+	excerpt?: string
 }
 
 export function projectMode(project: ProjectMeta | undefined): CanvasMode {
-	return project?.mode === 'a4' ? 'a4' : 'infinite'
+	if (project?.mode === 'a4') return 'a4'
+	if (project?.mode === 'doc') return 'doc'
+	return 'infinite'
 }
 
 const PROJECTS_KEY = 'infinite-canvas:projects'
@@ -104,6 +108,10 @@ export function touchProject(id: string) {
 export function setProjectThumbnail(id: string, thumbnail: string | null) {
 	// לא נוגעים ב-updatedAt — צילום התמונה אינו עריכה של המשתמש
 	updateProject(id, { thumbnail })
+}
+
+export function setProjectExcerpt(id: string, excerpt: string) {
+	updateProject(id, { excerpt })
 }
 
 /* --------------------------- IndexedDB עזרים --------------------------- */
@@ -196,6 +204,10 @@ function deleteDb(name: string): Promise<void> {
 
 /* --------------------------- פעולות על פרויקט --------------------------- */
 
+function docStorageKey(projectId: string): string {
+	return `infinite-canvas:doc:${projectId}`
+}
+
 export async function duplicateProject(id: string): Promise<ProjectMeta | undefined> {
 	const projects = listProjects()
 	const source = projects.find((p) => p.id === id)
@@ -208,8 +220,15 @@ export async function duplicateProject(id: string): Promise<ProjectMeta | undefi
 		updatedAt: now,
 		thumbnail: source.thumbnail ?? null,
 		mode: source.mode,
+		excerpt: source.excerpt,
 	}
-	await copyTldrawDb(dbNameFor(source.id), dbNameFor(copy.id))
+	if (projectMode(source) === 'doc') {
+		// תוכן מסמך טקסט נשמר ב-localStorage
+		const content = localStorage.getItem(docStorageKey(source.id))
+		if (content != null) localStorage.setItem(docStorageKey(copy.id), content)
+	} else {
+		await copyTldrawDb(dbNameFor(source.id), dbNameFor(copy.id))
+	}
 	saveProjects([copy, ...listProjects()])
 	return copy
 }
@@ -218,7 +237,23 @@ export async function deleteProject(id: string): Promise<void> {
 	const dbName = dbNameFor(id)
 	await deleteDb(dbName)
 	removeFromTldrawDbIndex(dbName)
+	localStorage.removeItem(docStorageKey(id))
 	saveProjects(listProjects().filter((p) => p.id !== id))
+}
+
+/* --------------------------- תוכן מסמכי טקסט --------------------------- */
+
+export function loadDocContent(projectId: string): unknown | null {
+	try {
+		const raw = localStorage.getItem(docStorageKey(projectId))
+		return raw ? JSON.parse(raw) : null
+	} catch {
+		return null
+	}
+}
+
+export function saveDocContent(projectId: string, content: unknown) {
+	localStorage.setItem(docStorageKey(projectId), JSON.stringify(content))
 }
 
 /* ----------------------- ייבוא קובץ ‎.tldr ממתין ----------------------- */

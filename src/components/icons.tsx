@@ -143,6 +143,16 @@ export function IconSparkle({ size = 18, strokeWidth = 2 }: IconProps) {
 	)
 }
 
+export function IconTextDoc({ size = 22, strokeWidth = 2 }: IconProps) {
+	return (
+		<svg {...base(size)} strokeWidth={strokeWidth}>
+			<path d="M7 3h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+			<path d="M14 3v5h5" />
+			<path d="M8.5 12h7M8.5 15.5h7M8.5 19h4" strokeWidth="1.7" />
+		</svg>
+	)
+}
+
 /** לוגו האפליקציה — טיפה כתומה עם קו ציור */
 export function Logo({ size = 34 }: { size?: number }) {
 	return (

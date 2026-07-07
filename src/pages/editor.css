@@ -214,6 +214,34 @@
 	cursor: default;
 }
 
+/* כפתור "הוספת דף" צף מתחת לדף ה-A4 האחרון */
+.add-a4-page-btn {
+	position: absolute;
+	top: 0;
+	left: 0;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	border: 1px solid var(--color-low-border);
+	border-radius: 999px;
+	padding: 8px 16px;
+	font-size: 13px;
+	font-weight: 700;
+	font-family: inherit;
+	cursor: pointer;
+	background: var(--color-panel);
+	color: var(--color-text-1);
+	box-shadow: var(--shadow-2);
+	pointer-events: all;
+	white-space: nowrap;
+	transition: color 0.15s, border-color 0.15s;
+}
+
+.add-a4-page-btn:hover {
+	color: #e8722a;
+	border-color: #e8722a;
+}
+
 @media (max-width: 640px) {
 	.project-panel-name {
 		width: 100px;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
+	Box,
 	DefaultMainMenu,
 	DefaultMainMenuContent,
 	Editor,
@@ -13,12 +14,13 @@ import {
 	parseTldrawJsonFile,
 	serializeTldrawJsonBlob,
 	useEditor,
+	useValue,
 	type TLComponents,
 } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { getAssetUrlsByImport } from '@tldraw/assets/imports.vite'
-import { IconBack, IconPage, IconPdf } from '../components/icons'
-import { A4_PX, exportCurrentPageToPdf, findA4Frame } from '../lib/pdf'
+import { IconBack, IconPage, IconPdf, IconPlus } from '../components/icons'
+import { A4_GAP, A4_PX, exportCurrentPageToPdf, findA4Frames } from '../lib/pdf'
 import {
 	getProject,
 	persistenceKeyFor,
@@ -74,39 +76,104 @@ function pickAndLoadTldrFile(editor: Editor, onLoaded: () => void) {
 	input.click()
 }
 
-/** במצב דף A4: דואג שתהיה מסגרת דף בעמוד ומגביל את המצלמה סביבה */
+/** מעדכן את מגבלות המצלמה כך שיקיפו את כל דפי ה-A4 */
+function applyA4CameraConstraints(editor: Editor) {
+	const frames = findA4Frames(editor)
+	if (frames.length === 0) return
+	const first = frames[0]
+	const last = frames[frames.length - 1]
+	const multiPage = frames.length > 1
+	editor.setCameraOptions({
+		constraints: {
+			bounds: {
+				x: first.x,
+				y: first.y,
+				w: A4_PX.w,
+				// מקום לכפתור "הוספת דף" מתחת לדף האחרון
+				h: last.y + A4_PX.h + 80 - first.y,
+			},
+			padding: { x: 48, y: 48 },
+			origin: { x: 0.5, y: 0 },
+			initialZoom: multiPage ? 'fit-x-100' : 'fit-max-100',
+			baseZoom: multiPage ? 'fit-x-100' : 'fit-max-100',
+			behavior: 'contain',
+		},
+	})
+}
+
+/** במצב דפי A4: דואג שיהיה לפחות דף אחד ומגביל את המצלמה סביב הדפים */
 function setUpA4Mode(editor: Editor) {
-	let frame = findA4Frame(editor)
-	if (!frame) {
-		const id = createShapeId()
+	if (findA4Frames(editor).length === 0) {
 		editor.run(
 			() => {
 				editor.createShape({
-					id,
+					id: createShapeId(),
 					type: 'frame',
 					x: 0,
 					y: 0,
 					meta: { a4: true },
-					props: { w: A4_PX.w, h: A4_PX.h, name: 'דף A4' },
+					props: { w: A4_PX.w, h: A4_PX.h, name: 'דף 1' },
 				})
 			},
 			{ history: 'ignore' }
 		)
-		frame = findA4Frame(editor)
 	}
-	const x = frame?.x ?? 0
-	const y = frame?.y ?? 0
-	editor.setCameraOptions({
-		constraints: {
-			bounds: { x, y, w: A4_PX.w, h: A4_PX.h },
-			padding: { x: 48, y: 48 },
-			origin: { x: 0.5, y: 0.5 },
-			initialZoom: 'fit-max-100',
-			baseZoom: 'fit-max-100',
-			behavior: 'contain',
-		},
-	})
+	applyA4CameraConstraints(editor)
 	editor.setCamera(editor.getCamera(), { reset: true })
+}
+
+/** מוסיף דף A4 חדש מתחת לדף האחרון וגולל אליו */
+function addA4Page(editor: Editor) {
+	const frames = findA4Frames(editor)
+	const last = frames[frames.length - 1]
+	const x = last?.x ?? 0
+	const y = last ? last.y + A4_PX.h + A4_GAP : 0
+	editor.createShape({
+		id: createShapeId(),
+		type: 'frame',
+		x,
+		y,
+		meta: { a4: true },
+		props: { w: A4_PX.w, h: A4_PX.h, name: `דף ${frames.length + 1}` },
+	})
+	applyA4CameraConstraints(editor)
+	editor.zoomToBounds(new Box(x, y, A4_PX.w, A4_PX.h), {
+		inset: 48,
+		animation: { duration: 320 },
+	})
+}
+
+/** כפתור "+" צף מתחת לדף ה-A4 האחרון, בתוך מרחב הקנבס */
+function AddA4PageButton() {
+	const editor = useEditor()
+	const position = useValue(
+		'a4-add-page-button',
+		() => {
+			const frames = findA4Frames(editor)
+			if (frames.length === 0) return null
+			const last = frames[frames.length - 1]
+			const point = editor.pageToViewport({
+				x: last.x + A4_PX.w / 2,
+				y: last.y + A4_PX.h + A4_GAP / 2,
+			})
+			return { x: point.x, y: point.y, zoom: editor.getZoomLevel() }
+		},
+		[editor]
+	)
+	if (!position) return null
+	return (
+		<button
+			className="add-a4-page-btn"
+			style={{
+				transform: `translate(${position.x}px, ${position.y}px) translate(-50%, -50%) scale(${Math.max(0.7, Math.min(1.15, position.zoom))})`,
+			}}
+			title="הוספת דף A4 חדש"
+			onPointerDown={(e) => e.stopPropagation()}
+			onClick={() => addA4Page(editor)}
+		>
+			<IconPlus size={15} /> הוספת דף
+		</button>
+	)
 }
 
 /** צילום תמונה ממוזערת של העמוד הנוכחי ושמירתה במטא־דאטה של הפרויקט */
@@ -217,6 +284,7 @@ export function EditorPage() {
 	const components: TLComponents = {
 		MainMenu: CustomMainMenu,
 		SharePanel: ProjectPanel,
+		...(projectMode(project) === 'a4' ? { InFrontOfTheCanvas: AddA4PageButton } : {}),
 	}
 
 	return (

@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { HashRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { getUserPreferences, setUserPreferences } from 'tldraw'
+import { getProject, projectMode } from './lib/projects'
+import { DocEditorPage } from './pages/DocEditorPage'
 import { EditorPage } from './pages/EditorPage'
 import { HomePage } from './pages/HomePage'
 
@@ -20,6 +22,14 @@ function ensureHebrewDefault() {
 	}
 }
 
+/** בוחר את העורך המתאים לפי סוג הפרויקט: קנבס (tldraw) או מסמך טקסט */
+function ProjectPage() {
+	const { projectId = '' } = useParams()
+	const project = getProject(projectId)
+	if (projectMode(project) === 'doc') return <DocEditorPage />
+	return <EditorPage />
+}
+
 export function App() {
 	useEffect(() => {
 		ensureHebrewDefault()
@@ -29,7 +39,7 @@ export function App() {
 		<HashRouter>
 			<Routes>
 				<Route path="/" element={<HomePage />} />
-				<Route path="/p/:projectId" element={<EditorPage />} />
+				<Route path="/p/:projectId" element={<ProjectPage />} />
 				<Route path="*" element={<Navigate to="/" replace />} />
 			</Routes>
 		</HashRouter>
