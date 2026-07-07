@@ -175,7 +175,9 @@ export function EditorPage() {
 	}
 
 	return (
-		<div className="editor-page" dir="ltr">
+		// הדף כולו dir=rtl — ממשק tldraw 3 יורש את הכיוון ומתהפך לעברית;
+		// הקנבס עצמו מבוסס קואורדינטות ואינו מושפע מכיוון הטקסט
+		<div className="editor-page">
 			<Tldraw
 				persistenceKey={persistenceKeyFor(projectId)}
 				onMount={handleMount}

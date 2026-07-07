@@ -1,0 +1,41 @@
+# פריסה אוטומטית ל-Firebase Hosting בכל דחיפה ל-main.
+#
+# הפעלה (חד־פעמית, אחרי יצירת פרויקט Firebase):
+# 1. בקונסולת Firebase: Project settings → Service accounts → Generate new private key
+# 2. בגיטהאב: Settings → Secrets and variables → Actions:
+#    - Secret בשם FIREBASE_SERVICE_ACCOUNT — תוכן קובץ ה-JSON של חשבון השירות
+#    - Variable בשם FIREBASE_PROJECT_ID — מזהה הפרויקט (למשל infinite-canvas-12345)
+# כל עוד המשתנה FIREBASE_PROJECT_ID לא הוגדר, ה-workflow פשוט מדלג.
+
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: ${{ vars.FIREBASE_PROJECT_ID != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+          channelId: live
