@@ -1,0 +1,333 @@
+.home {
+	min-height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.home-header {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	background: color-mix(in srgb, var(--ic-bg) 82%, transparent);
+	backdrop-filter: blur(12px);
+	border-bottom: 1px solid var(--ic-border);
+}
+
+.home-header-inner {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 16px 24px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.home-brand {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.home-logo {
+	color: var(--ic-text);
+	display: grid;
+	place-items: center;
+}
+
+.home-brand h1 {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+.home-brand p {
+	margin: 2px 0 0;
+	font-size: 13px;
+	color: var(--ic-text-soft);
+}
+
+.home-actions {
+	display: flex;
+	gap: 10px;
+}
+
+.btn {
+	border: none;
+	border-radius: 10px;
+	padding: 9px 16px;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	transition:
+		background 0.15s,
+		transform 0.05s;
+}
+
+.btn:active {
+	transform: scale(0.98);
+}
+
+.btn-primary {
+	background: var(--ic-accent);
+	color: var(--ic-accent-text);
+}
+
+.btn-primary:hover {
+	background: color-mix(in srgb, var(--ic-accent) 88%, black);
+}
+
+.btn-primary:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.btn-ghost {
+	background: transparent;
+	color: var(--ic-text);
+	border: 1px solid var(--ic-border);
+}
+
+.btn-ghost:hover {
+	background: var(--ic-surface-hover);
+}
+
+.btn-danger {
+	background: var(--ic-danger);
+	color: #fff;
+}
+
+.btn-danger:hover {
+	background: color-mix(in srgb, var(--ic-danger) 88%, black);
+}
+
+.btn-lg {
+	padding: 12px 22px;
+	font-size: 15px;
+}
+
+.home-main {
+	flex: 1;
+	max-width: 1200px;
+	width: 100%;
+	margin: 0 auto;
+	padding: 28px 24px 64px;
+}
+
+/* ------------------------------ מצב ריק ------------------------------ */
+
+.home-empty {
+	text-align: center;
+	padding: 96px 24px;
+}
+
+.home-empty-art {
+	font-size: 56px;
+	margin-bottom: 8px;
+}
+
+.home-empty h2 {
+	margin: 12px 0 6px;
+	font-size: 22px;
+}
+
+.home-empty p {
+	margin: 0 auto 24px;
+	max-width: 420px;
+	color: var(--ic-text-soft);
+	line-height: 1.6;
+}
+
+/* ---------------------------- רשת פרויקטים ---------------------------- */
+
+.project-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 20px;
+}
+
+.project-card {
+	background: var(--ic-surface);
+	border: 1px solid var(--ic-border);
+	border-radius: var(--ic-radius);
+	overflow: hidden;
+	cursor: pointer;
+	box-shadow: var(--ic-shadow);
+	transition:
+		transform 0.12s,
+		box-shadow 0.12s;
+}
+
+.project-card:hover {
+	transform: translateY(-2px);
+	box-shadow: var(--ic-shadow-lg);
+}
+
+.project-thumb {
+	aspect-ratio: 16 / 10;
+	background:
+		radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--ic-accent) 10%, transparent), transparent 55%),
+		var(--ic-surface-hover);
+	display: grid;
+	place-items: center;
+	border-bottom: 1px solid var(--ic-border);
+}
+
+.project-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.project-thumb-empty {
+	font-size: 34px;
+	opacity: 0.5;
+}
+
+.project-info {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 14px;
+	gap: 8px;
+}
+
+.project-text {
+	min-width: 0;
+}
+
+.project-info h3 {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.project-info time {
+	display: block;
+	margin-top: 3px;
+	font-size: 12px;
+	color: var(--ic-text-soft);
+}
+
+.project-menu-wrap {
+	position: relative;
+	flex-shrink: 0;
+}
+
+.icon-btn {
+	background: transparent;
+	border: none;
+	border-radius: 8px;
+	width: 32px;
+	height: 32px;
+	font-size: 18px;
+	color: var(--ic-text-soft);
+	cursor: pointer;
+	display: grid;
+	place-items: center;
+}
+
+.icon-btn:hover {
+	background: var(--ic-surface-hover);
+	color: var(--ic-text);
+}
+
+.project-menu {
+	position: absolute;
+	top: calc(100% + 4px);
+	inset-inline-end: 0;
+	background: var(--ic-surface);
+	border: 1px solid var(--ic-border);
+	border-radius: 10px;
+	box-shadow: var(--ic-shadow-lg);
+	padding: 6px;
+	min-width: 150px;
+	z-index: 20;
+	display: flex;
+	flex-direction: column;
+}
+
+.project-menu button {
+	background: transparent;
+	border: none;
+	border-radius: 7px;
+	padding: 8px 10px;
+	font-size: 14px;
+	text-align: start;
+	cursor: pointer;
+	color: var(--ic-text);
+}
+
+.project-menu button:hover {
+	background: var(--ic-surface-hover);
+}
+
+.project-menu button.danger {
+	color: var(--ic-danger);
+}
+
+/* ------------------------------- מודאלים ------------------------------- */
+
+.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.45);
+	display: grid;
+	place-items: center;
+	z-index: 100;
+	padding: 24px;
+}
+
+.modal {
+	background: var(--ic-surface);
+	border: 1px solid var(--ic-border);
+	border-radius: 14px;
+	box-shadow: var(--ic-shadow-lg);
+	padding: 22px;
+	width: 100%;
+	max-width: 400px;
+}
+
+.modal h3 {
+	margin: 0 0 12px;
+	font-size: 17px;
+}
+
+.modal-text {
+	margin: 0 0 16px;
+	color: var(--ic-text-soft);
+	line-height: 1.6;
+	font-size: 14px;
+}
+
+.text-input {
+	width: 100%;
+	padding: 10px 12px;
+	border-radius: 9px;
+	border: 1px solid var(--ic-border);
+	background: var(--ic-bg);
+	color: var(--ic-text);
+	font-size: 15px;
+	font-family: inherit;
+	outline: none;
+}
+
+.text-input:focus {
+	border-color: var(--ic-accent);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--ic-accent) 22%, transparent);
+}
+
+.modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 18px;
+}
