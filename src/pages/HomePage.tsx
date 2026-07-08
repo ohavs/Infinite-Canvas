@@ -14,18 +14,27 @@ import {
 	IconTrash,
 	Logo,
 } from '../components/icons'
+import { AccountButton } from '../components/AccountButton'
 import { ThemeControls } from '../components/ThemeControls'
 import {
+	createFolder,
 	createProject,
+	deleteFolder,
 	deleteProject,
 	duplicateProject,
+	listFolders,
 	listProjects,
 	projectMode,
+	renameFolder,
 	renameProject,
+	setProjectFolder,
+	setProjectTags,
 	stashPendingImport,
 	type CanvasMode,
+	type FolderMeta,
 	type ProjectMeta,
 } from '../lib/projects'
+import { TEMPLATES, stashPendingTemplate, type ProjectTemplate } from '../lib/templates'
 import './home.css'
 
 const relativeTime = new Intl.RelativeTimeFormat('he', { numeric: 'auto' })
@@ -60,13 +69,23 @@ function formatUpdatedAt(timestamp: number): string {
 export function HomePage() {
 	const navigate = useNavigate()
 	const [projects, setProjects] = useState<ProjectMeta[]>(() => listProjects())
+	const [folders, setFolders] = useState<FolderMeta[]>(() => listFolders())
+	const [folderFilter, setFolderFilter] = useState<string | 'all'>('all')
+	const [tagFilter, setTagFilter] = useState<string | null>(null)
 	const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null)
 	const [creating, setCreating] = useState(false)
+	const [showTemplates, setShowTemplates] = useState(false)
 	const [renaming, setRenaming] = useState<ProjectMeta | null>(null)
 	const [deleting, setDeleting] = useState<ProjectMeta | null>(null)
+	const [movingProject, setMovingProject] = useState<ProjectMeta | null>(null)
+	const [taggingProject, setTaggingProject] = useState<ProjectMeta | null>(null)
+	const [editingFolder, setEditingFolder] = useState<FolderMeta | null>(null)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
-	const refresh = useCallback(() => setProjects(listProjects()), [])
+	const refresh = useCallback(() => {
+		setProjects(listProjects())
+		setFolders(listFolders())
+	}, [])
 
 	useEffect(() => {
 		window.addEventListener('projects-changed', refresh)
@@ -97,6 +116,18 @@ export function HomePage() {
 		navigate(`/p/${project.id}`)
 	}
 
+	const handleTemplatePick = (template: ProjectTemplate) => {
+		const project = createProject(template.name, template.mode)
+		stashPendingTemplate(project.id, template)
+		navigate(`/p/${project.id}`)
+	}
+
+	const visibleProjects = projects.filter((project) => {
+		if (folderFilter !== 'all' && (project.folderId ?? null) !== folderFilter) return false
+		if (tagFilter && !(project.tags ?? []).includes(tagFilter)) return false
+		return true
+	})
+
 	return (
 		<div className="home">
 			<header className="topbar">
@@ -119,6 +150,7 @@ export function HomePage() {
 							<span>{headerDate.format(Date.now())}</span>
 						</span>
 						<ThemeControls />
+						<AccountButton />
 					</div>
 				</div>
 			</header>
@@ -162,6 +194,9 @@ export function HomePage() {
 						<button className="btn btn-ink btn-lg" onClick={() => setCreating(true)}>
 							<IconPlus size={16} /> פרויקט חדש
 						</button>
+						<button className="btn btn-ghost" onClick={() => setShowTemplates(true)}>
+							✨ תבניות מוכנות
+						</button>
 						<button className="btn btn-ghost" onClick={() => fileInputRef.current?.click()}>
 							<IconImport size={16} /> ייבוא ‎.tldr
 						</button>
@@ -171,6 +206,50 @@ export function HomePage() {
 				{projects.length > 0 && (
 					<div className="grid-title">
 						<h2>הפרויקטים שלך</h2>
+						<div className="folder-bar" role="tablist" aria-label="סינון לפי תיקייה">
+							<button
+								className={`folder-chip ${folderFilter === 'all' ? 'active' : ''}`}
+								onClick={() => setFolderFilter('all')}
+							>
+								הכל
+							</button>
+							{folders.map((folder) => (
+								<span key={folder.id} className={`folder-chip-wrap`}>
+									<button
+										className={`folder-chip ${folderFilter === folder.id ? 'active' : ''}`}
+										onClick={() => setFolderFilter(folder.id)}
+										onDoubleClick={() => setEditingFolder(folder)}
+									>
+										📁 {folder.name}
+									</button>
+									{folderFilter === folder.id && (
+										<button
+											className="folder-chip-edit"
+											title="עריכת התיקייה"
+											onClick={() => setEditingFolder(folder)}
+										>
+											<IconPencil size={12} />
+										</button>
+									)}
+								</span>
+							))}
+							<button
+								className="folder-chip folder-chip-new"
+								title="תיקייה חדשה"
+								onClick={() => {
+									const folder = createFolder('תיקייה חדשה')
+									refresh()
+									setEditingFolder(folder)
+								}}
+							>
+								<IconPlus size={13} />
+							</button>
+							{tagFilter && (
+								<button className="folder-chip tag-filter-chip active" onClick={() => setTagFilter(null)}>
+									# {tagFilter} ✕
+								</button>
+							)}
+						</div>
 					</div>
 				)}
 
@@ -187,7 +266,7 @@ export function HomePage() {
 					</section>
 				) : (
 					<section className="project-grid">
-						{projects.map((project) => {
+						{visibleProjects.map((project) => {
 							const mode = projectMode(project)
 							return (
 								<article
@@ -235,6 +314,20 @@ export function HomePage() {
 											<time>
 												<IconClock size={12} /> {formatUpdatedAt(project.updatedAt)}
 											</time>
+											{(project.tags?.length ?? 0) > 0 && (
+												<div className="project-tags" onClick={(e) => e.stopPropagation()}>
+													{project.tags!.map((tag) => (
+														<button
+															key={tag}
+															className="project-tag"
+															title={`סינון לפי „${tag}"`}
+															onClick={() => setTagFilter(tag)}
+														>
+															#{tag}
+														</button>
+													))}
+												</div>
+											)}
 										</div>
 										<div className="project-menu-wrap" onClick={(e) => e.stopPropagation()}>
 											<button
@@ -264,6 +357,22 @@ export function HomePage() {
 														}}
 													>
 														<IconCopy /> שכפול
+													</button>
+													<button
+														onClick={() => {
+															setMenuOpenFor(null)
+															setMovingProject(project)
+														}}
+													>
+														📁 העברה לתיקייה
+													</button>
+													<button
+														onClick={() => {
+															setMenuOpenFor(null)
+															setTaggingProject(project)
+														}}
+													>
+														<span className="menu-hash">#</span> תגיות
 													</button>
 													<button
 														className="danger"
@@ -330,7 +439,243 @@ export function HomePage() {
 					}}
 				/>
 			)}
+
+			{showTemplates && (
+				<TemplatesDialog onClose={() => setShowTemplates(false)} onPick={handleTemplatePick} />
+			)}
+
+			{movingProject && (
+				<FolderPickDialog
+					project={movingProject}
+					folders={folders}
+					onClose={() => setMovingProject(null)}
+					onPick={(folderId) => {
+						setProjectFolder(movingProject.id, folderId)
+						setMovingProject(null)
+						refresh()
+					}}
+					onNewFolder={() => {
+						const folder = createFolder('תיקייה חדשה')
+						setProjectFolder(movingProject.id, folder.id)
+						setMovingProject(null)
+						refresh()
+						setEditingFolder(folder)
+					}}
+				/>
+			)}
+
+			{taggingProject && (
+				<TagsDialog
+					project={taggingProject}
+					onClose={() => setTaggingProject(null)}
+					onSave={(tags) => {
+						setProjectTags(taggingProject.id, tags)
+						setTaggingProject(null)
+						refresh()
+					}}
+				/>
+			)}
+
+			{editingFolder && (
+				<FolderEditDialog
+					folder={editingFolder}
+					onClose={() => setEditingFolder(null)}
+					onRename={(name) => {
+						renameFolder(editingFolder.id, name)
+						setEditingFolder(null)
+						refresh()
+					}}
+					onDelete={() => {
+						deleteFolder(editingFolder.id)
+						if (folderFilter === editingFolder.id) setFolderFilter('all')
+						setEditingFolder(null)
+						refresh()
+					}}
+				/>
+			)}
 		</div>
+	)
+}
+
+/* ------------------------------- תבניות ------------------------------- */
+
+function TemplatesDialog({
+	onClose,
+	onPick,
+}: {
+	onClose: () => void
+	onPick: (template: ProjectTemplate) => void
+}) {
+	const modeLabel = { doc: 'מסמך', a4: 'דפי A4', infinite: 'קנבס' } as const
+	return (
+		<Modal onClose={onClose} wide>
+			<h3>תבניות מוכנות</h3>
+			<p className="modal-text">בחרו תבנית — ניצור ממנה פרויקט חדש שאפשר לערוך חופשי.</p>
+			<div className="templates-grid">
+				{TEMPLATES.map((template) => (
+					<button key={template.id} className="template-card" onClick={() => onPick(template)}>
+						<span className="template-emoji">{template.emoji}</span>
+						<strong>{template.name}</strong>
+						<span className="template-desc">{template.description}</span>
+						<span className="template-mode">{modeLabel[template.mode]}</span>
+					</button>
+				))}
+			</div>
+		</Modal>
+	)
+}
+
+/* --------------------------- תיקיות ותגיות --------------------------- */
+
+function FolderPickDialog({
+	project,
+	folders,
+	onClose,
+	onPick,
+	onNewFolder,
+}: {
+	project: ProjectMeta
+	folders: FolderMeta[]
+	onClose: () => void
+	onPick: (folderId: string | null) => void
+	onNewFolder: () => void
+}) {
+	const current = project.folderId ?? null
+	return (
+		<Modal onClose={onClose}>
+			<h3>העברת „{project.name}" לתיקייה</h3>
+			<div className="folder-pick-list">
+				<button
+					className={`folder-pick-item ${current === null ? 'active' : ''}`}
+					onClick={() => onPick(null)}
+				>
+					ללא תיקייה
+				</button>
+				{folders.map((folder) => (
+					<button
+						key={folder.id}
+						className={`folder-pick-item ${current === folder.id ? 'active' : ''}`}
+						onClick={() => onPick(folder.id)}
+					>
+						📁 {folder.name}
+					</button>
+				))}
+				<button className="folder-pick-item folder-pick-new" onClick={onNewFolder}>
+					<IconPlus size={14} /> תיקייה חדשה
+				</button>
+			</div>
+		</Modal>
+	)
+}
+
+function TagsDialog({
+	project,
+	onClose,
+	onSave,
+}: {
+	project: ProjectMeta
+	onClose: () => void
+	onSave: (tags: string[]) => void
+}) {
+	const [tags, setTags] = useState<string[]>(project.tags ?? [])
+	const [input, setInput] = useState('')
+
+	const addTag = () => {
+		const tag = input.trim().replace(/^#/, '')
+		if (tag && !tags.includes(tag)) setTags([...tags, tag])
+		setInput('')
+	}
+
+	return (
+		<Modal onClose={onClose}>
+			<h3>תגיות של „{project.name}"</h3>
+			<div className="tags-editor">
+				{tags.map((tag) => (
+					<span key={tag} className="tags-editor-chip">
+						#{tag}
+						<button
+							aria-label={`הסרת ${tag}`}
+							onClick={() => setTags(tags.filter((t) => t !== tag))}
+						>
+							✕
+						</button>
+					</span>
+				))}
+				<input
+					className="tags-editor-input"
+					value={input}
+					autoFocus
+					placeholder={tags.length === 0 ? 'הקלידו תגית ו-Enter...' : 'תגית נוספת...'}
+					onChange={(e) => setInput(e.target.value)}
+					onKeyDown={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault()
+							addTag()
+						}
+					}}
+				/>
+			</div>
+			<div className="modal-actions">
+				<button className="btn btn-ghost" onClick={onClose}>
+					ביטול
+				</button>
+				<button
+					className="btn btn-accent"
+					onClick={() => {
+						const pending = input.trim().replace(/^#/, '')
+						onSave(pending && !tags.includes(pending) ? [...tags, pending] : tags)
+					}}
+				>
+					שמירה
+				</button>
+			</div>
+		</Modal>
+	)
+}
+
+function FolderEditDialog({
+	folder,
+	onClose,
+	onRename,
+	onDelete,
+}: {
+	folder: FolderMeta
+	onClose: () => void
+	onRename: (name: string) => void
+	onDelete: () => void
+}) {
+	const [name, setName] = useState(folder.name)
+	return (
+		<Modal onClose={onClose}>
+			<h3>עריכת תיקייה</h3>
+			<form
+				onSubmit={(e) => {
+					e.preventDefault()
+					if (name.trim()) onRename(name)
+				}}
+			>
+				<input
+					className="text-input"
+					value={name}
+					autoFocus
+					onFocus={(e) => e.target.select()}
+					onChange={(e) => setName(e.target.value)}
+				/>
+				<div className="modal-actions modal-actions-split">
+					<button type="button" className="btn btn-ghost btn-danger-ghost" onClick={onDelete}>
+						<IconTrash size={14} /> מחיקת התיקייה
+					</button>
+					<span className="modal-actions-side">
+						<button type="button" className="btn btn-ghost" onClick={onClose}>
+							ביטול
+						</button>
+						<button type="submit" className="btn btn-accent" disabled={!name.trim()}>
+							שמירה
+						</button>
+					</span>
+				</div>
+			</form>
+		</Modal>
 	)
 }
 
@@ -482,7 +827,15 @@ function ConfirmDeleteDialog({
 	)
 }
 
-function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+function Modal({
+	children,
+	onClose,
+	wide,
+}: {
+	children: React.ReactNode
+	onClose: () => void
+	wide?: boolean
+}) {
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') onClose()
@@ -493,7 +846,12 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
 
 	return (
 		<div className="modal-backdrop" onClick={onClose}>
-			<div className="modal" role="dialog" aria-modal onClick={(e) => e.stopPropagation()}>
+			<div
+				className={`modal ${wide ? 'modal-wide' : ''}`}
+				role="dialog"
+				aria-modal
+				onClick={(e) => e.stopPropagation()}
+			>
 				{children}
 			</div>
 		</div>

@@ -617,3 +617,275 @@
 		grid-template-columns: 1fr;
 	}
 }
+
+/* --------------------------- תיקיות ותגיות --------------------------- */
+
+.grid-title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 14px;
+	flex-wrap: wrap;
+	margin-bottom: 14px;
+}
+
+.grid-title h2 {
+	margin: 0;
+}
+
+.folder-bar {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	flex-wrap: wrap;
+}
+
+.folder-chip-wrap {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+}
+
+.folder-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	border: 1px solid var(--ic-border);
+	border-radius: var(--ic-radius-pill);
+	background: var(--ic-surface);
+	color: var(--ic-text);
+	font-size: 13px;
+	font-weight: 600;
+	font-family: inherit;
+	padding: 7px 14px;
+	cursor: pointer;
+	transition: background 0.13s, border-color 0.13s;
+}
+
+.folder-chip:hover {
+	background: var(--ic-surface-hover);
+}
+
+.folder-chip.active {
+	background: var(--ic-ink);
+	border-color: var(--ic-ink);
+	color: var(--ic-ink-text);
+}
+
+.folder-chip-new {
+	padding: 7px 10px;
+	color: var(--ic-accent);
+}
+
+.folder-chip-edit {
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--ic-text-soft);
+	cursor: pointer;
+}
+
+.folder-chip-edit:hover {
+	background: var(--ic-surface-hover);
+	color: var(--ic-text);
+}
+
+.tag-filter-chip.active {
+	background: var(--ic-accent);
+	border-color: var(--ic-accent);
+	color: #fff;
+}
+
+.project-tags {
+	display: flex;
+	gap: 5px;
+	flex-wrap: wrap;
+	margin-top: 6px;
+}
+
+.project-tag {
+	border: none;
+	background: var(--ic-accent-wash);
+	color: var(--ic-accent-deep);
+	font-size: 11px;
+	font-weight: 700;
+	font-family: inherit;
+	border-radius: var(--ic-radius-pill);
+	padding: 2.5px 9px;
+	cursor: pointer;
+}
+
+.project-tag:hover {
+	background: var(--ic-accent-soft);
+}
+
+.menu-hash {
+	font-weight: 800;
+	color: var(--ic-accent);
+}
+
+/* ------------------------------- תבניות ------------------------------- */
+
+.modal-wide {
+	max-width: 620px;
+}
+
+.templates-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: 10px;
+}
+
+.template-card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	background: var(--ic-surface-2);
+	border: 1.5px solid var(--ic-border);
+	border-radius: var(--ic-radius-sm);
+	padding: 14px;
+	cursor: pointer;
+	text-align: start;
+	color: var(--ic-text);
+	font-family: inherit;
+	transition: border-color 0.13s, transform 0.13s;
+	position: relative;
+}
+
+.template-card:hover {
+	border-color: var(--ic-accent);
+	transform: translateY(-2px);
+}
+
+.template-emoji {
+	font-size: 24px;
+}
+
+.template-card strong {
+	font-size: 14px;
+}
+
+.template-desc {
+	font-size: 11.5px;
+	color: var(--ic-text-soft);
+	line-height: 1.5;
+}
+
+.template-mode {
+	position: absolute;
+	top: 10px;
+	inset-inline-end: 10px;
+	font-size: 10.5px;
+	font-weight: 700;
+	color: var(--ic-accent-deep);
+	background: var(--ic-accent-wash);
+	border-radius: var(--ic-radius-pill);
+	padding: 2px 8px;
+}
+
+/* בחירת תיקייה ותגיות במודאל */
+
+.folder-pick-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.folder-pick-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	border: 1.5px solid var(--ic-border);
+	border-radius: var(--ic-radius-sm);
+	background: var(--ic-surface-2);
+	color: var(--ic-text);
+	font-size: 14px;
+	font-weight: 600;
+	font-family: inherit;
+	padding: 11px 14px;
+	cursor: pointer;
+	text-align: start;
+	transition: border-color 0.13s;
+}
+
+.folder-pick-item:hover {
+	border-color: color-mix(in srgb, var(--ic-accent) 45%, var(--ic-border));
+}
+
+.folder-pick-item.active {
+	border-color: var(--ic-accent);
+	background: var(--ic-accent-wash);
+}
+
+.folder-pick-new {
+	color: var(--ic-accent);
+	border-style: dashed;
+}
+
+.tags-editor {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+	border: 1px solid var(--ic-border);
+	border-radius: var(--ic-radius-sm);
+	background: var(--ic-surface-2);
+	padding: 9px 11px;
+	min-height: 48px;
+}
+
+.tags-editor-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	background: var(--ic-accent-wash);
+	color: var(--ic-accent-deep);
+	font-size: 12.5px;
+	font-weight: 700;
+	border-radius: var(--ic-radius-pill);
+	padding: 4px 10px;
+}
+
+.tags-editor-chip button {
+	border: none;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	font-size: 11px;
+	padding: 0 1px;
+}
+
+.tags-editor-input {
+	flex: 1;
+	min-width: 110px;
+	border: none;
+	background: transparent;
+	color: var(--ic-text);
+	font-size: 14px;
+	font-family: inherit;
+	outline: none;
+	padding: 4px 2px;
+}
+
+.modal-actions-split {
+	justify-content: space-between;
+}
+
+.modal-actions-side {
+	display: flex;
+	gap: 10px;
+}
+
+.btn-danger-ghost {
+	color: var(--ic-danger);
+	border-color: color-mix(in srgb, var(--ic-danger) 35%, var(--ic-border));
+}
+
+.btn-danger-ghost:hover {
+	background: color-mix(in srgb, var(--ic-danger) 10%, var(--ic-surface));
+}

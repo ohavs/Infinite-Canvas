@@ -35,6 +35,15 @@ export interface ProjectMeta {
 	excerpt?: string
 	/** הגדרות כותרת/ייצוא — למסמכי טקסט */
 	docSettings?: DocHeaderSettings
+	/** שיוך לתיקייה (null/חסר = ללא תיקייה) */
+	folderId?: string | null
+	/** תגיות חופשיות */
+	tags?: string[]
+}
+
+export interface FolderMeta {
+	id: string
+	name: string
 }
 
 export function getDocSettings(project: ProjectMeta | undefined): DocHeaderSettings {
@@ -260,6 +269,8 @@ export async function deleteProject(id: string): Promise<void> {
 	removeFromTldrawDbIndex(dbName)
 	localStorage.removeItem(docStorageKey(id))
 	saveProjects(listProjects().filter((p) => p.id !== id))
+	// מיידע את שכבת הענן (אם פעילה) שהפרויקט נמחק
+	window.dispatchEvent(new CustomEvent('ic-project-deleted', { detail: id }))
 }
 
 /* --------------------------- תוכן מסמכי טקסט --------------------------- */
@@ -275,6 +286,54 @@ export function loadDocContent(projectId: string): unknown | null {
 
 export function saveDocContent(projectId: string, content: unknown) {
 	localStorage.setItem(docStorageKey(projectId), JSON.stringify(content))
+}
+
+/* ------------------------------- תיקיות ------------------------------- */
+
+const FOLDERS_KEY = 'infinite-canvas:folders'
+
+export function listFolders(): FolderMeta[] {
+	try {
+		const raw = localStorage.getItem(FOLDERS_KEY)
+		const parsed = raw ? JSON.parse(raw) : []
+		return Array.isArray(parsed) ? parsed : []
+	} catch {
+		return []
+	}
+}
+
+function saveFolders(folders: FolderMeta[]) {
+	localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders))
+	window.dispatchEvent(new Event('projects-changed'))
+}
+
+export function createFolder(name: string): FolderMeta {
+	const folder: FolderMeta = { id: crypto.randomUUID(), name: name.trim() || 'תיקייה חדשה' }
+	saveFolders([...listFolders(), folder])
+	return folder
+}
+
+export function renameFolder(id: string, name: string) {
+	if (!name.trim()) return
+	saveFolders(listFolders().map((f) => (f.id === id ? { ...f, name: name.trim() } : f)))
+}
+
+/** מוחק תיקייה; הפרויקטים שבה נשארים, ללא שיוך */
+export function deleteFolder(id: string) {
+	const projects = listProjects()
+	for (const p of projects) {
+		if (p.folderId === id) p.folderId = null
+	}
+	localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects))
+	saveFolders(listFolders().filter((f) => f.id !== id))
+}
+
+export function setProjectFolder(projectId: string, folderId: string | null) {
+	updateProject(projectId, { folderId })
+}
+
+export function setProjectTags(projectId: string, tags: string[]) {
+	updateProject(projectId, { tags })
 }
 
 /* ----------------------- ייבוא קובץ ‎.tldr ממתין ----------------------- */

@@ -1,0 +1,108 @@
+.account-signin {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	border: 1px solid var(--ic-border);
+	border-radius: var(--ic-radius-pill);
+	background: var(--ic-surface);
+	color: var(--ic-text);
+	font-size: 13.5px;
+	font-weight: 600;
+	font-family: inherit;
+	padding: 8px 16px;
+	cursor: pointer;
+	transition: background 0.15s;
+}
+
+.account-signin:hover {
+	background: var(--ic-surface-hover);
+}
+
+.account-wrap {
+	position: relative;
+	display: inline-flex;
+}
+
+.account-avatar {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	border: 2px solid var(--ic-accent);
+	background: var(--ic-accent-wash);
+	color: var(--ic-accent-deep);
+	font-weight: 700;
+	cursor: pointer;
+	overflow: hidden;
+	display: grid;
+	place-items: center;
+	padding: 0;
+}
+
+.account-avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.account-avatar.syncing {
+	animation: account-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes account-pulse {
+	50% {
+		box-shadow: 0 0 0 5px color-mix(in srgb, var(--ic-accent) 25%, transparent);
+	}
+}
+
+.account-menu {
+	position: absolute;
+	top: calc(100% + 8px);
+	inset-inline-end: 0;
+	background: var(--ic-surface);
+	border: 1px solid var(--ic-border);
+	border-radius: 14px;
+	box-shadow: var(--ic-shadow-lg);
+	padding: 6px;
+	min-width: 190px;
+	z-index: 200;
+}
+
+.account-menu-header {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 9px 11px;
+	border-bottom: 1px solid var(--ic-border);
+	margin-bottom: 5px;
+}
+
+.account-menu-header strong {
+	font-size: 13.5px;
+}
+
+.account-menu-header span {
+	font-size: 11.5px;
+	color: var(--ic-text-soft);
+}
+
+.account-menu-item {
+	display: block;
+	width: 100%;
+	border: none;
+	background: transparent;
+	color: var(--ic-text);
+	font-size: 13.5px;
+	font-family: inherit;
+	text-align: start;
+	padding: 9px 11px;
+	border-radius: 9px;
+	cursor: pointer;
+}
+
+.account-menu-item:hover {
+	background: var(--ic-surface-hover);
+}
+
+.account-menu-item.danger {
+	color: var(--ic-danger);
+}

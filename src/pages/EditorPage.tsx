@@ -22,7 +22,9 @@ import { getAssetUrlsByImport } from '@tldraw/assets/imports.vite'
 import { IconBack, IconPage, IconPdf, IconPlus } from '../components/icons'
 import { ThemeControls } from '../components/ThemeControls'
 import { showToast } from '../components/toast'
+import { queueCanvasSnapshot, takeRemoteCanvasSnapshot } from '../lib/cloud'
 import { A4_GAP, A4_PX, exportCurrentPageToPdf, findA4Frames } from '../lib/pdf'
+import { takePendingTemplate } from '../lib/templates'
 import {
 	getProject,
 	persistenceKeyFor,
@@ -206,6 +208,8 @@ async function captureThumbnail(editor: Editor, projectId: string) {
 		if (dataUrl.length < 400_000) {
 			setProjectThumbnail(projectId, dataUrl)
 		}
+		// באותה הזדמנות — עדכון הסנכרון לענן (אם המשתמש מחובר)
+		queueCanvasSnapshot(projectId, JSON.stringify(getSnapshot(editor.store).document))
 	} catch (e) {
 		console.warn('נכשל צילום תמונה ממוזערת', e)
 	}
@@ -249,6 +253,16 @@ export function EditorPage() {
 		(editor: Editor) => {
 			editorRef.current = editor
 
+			// גרסה חדשה יותר של הקנבס שהגיעה מסנכרון הענן
+			const remoteSnapshot = takeRemoteCanvasSnapshot(projectId)
+			if (remoteSnapshot) {
+				try {
+					loadSnapshot(editor.store, { document: JSON.parse(remoteSnapshot) })
+				} catch (e) {
+					console.warn('נכשלה טעינת קנבס מהענן', e)
+				}
+			}
+
 			// אם הגענו מייבוא קובץ — נטען אותו לקנבס
 			const pendingJson = takePendingImport(projectId)
 			if (pendingJson) {
@@ -258,6 +272,14 @@ export function EditorPage() {
 					dirtyRef.current = true
 					touchProject(projectId)
 				}
+			}
+
+			// פרויקט שנוצר מתבנית — בונים את הצורות בפתיחה הראשונה
+			const template = takePendingTemplate(projectId)
+			if (template?.buildCanvas && editor.getCurrentPageShapeIds().size === 0) {
+				template.buildCanvas(editor)
+				dirtyRef.current = true
+				touchProject(projectId)
 			}
 
 			if (projectMode(getProject(projectId)) === 'a4') {

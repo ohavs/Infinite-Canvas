@@ -43,6 +43,7 @@ import {
 import { ResizableImage } from '../lib/resizable-image'
 import { deleteSignature, listSignatures, saveSignature, trimCanvas } from '../lib/signatures'
 import { RtlTableColumnResize } from '../lib/table-extras'
+import { clearPendingTemplate, peekPendingTemplate } from '../lib/templates'
 import { FontSize, LineHeight, ParagraphDirection } from '../lib/tiptap-extensions'
 import './doc-editor.css'
 
@@ -146,7 +147,9 @@ export function DocEditorPage() {
 			RtlTableColumnResize,
 			ResizableImage,
 		],
-		content: (loadDocContent(projectId) as object | null) ?? undefined,
+		content:
+			(loadDocContent(projectId) as object | null) ??
+			(peekPendingTemplate(projectId)?.docContent as object | undefined),
 		autofocus: 'end',
 		onUpdate: ({ editor }) => {
 			clearTimeout(saveTimeout.current)
@@ -159,6 +162,16 @@ export function DocEditorPage() {
 	})
 
 	useEditorTick(editor)
+
+	// אחרי שהעורך עלה עם תוכן התבנית — מנקים אותה ושומרים מיד
+	useEffect(() => {
+		if (!editor) return
+		if (peekPendingTemplate(projectId)) {
+			clearPendingTemplate(projectId)
+			saveDocContent(projectId, editor.getJSON())
+			setProjectExcerpt(projectId, editor.getText().trim().slice(0, 220))
+		}
+	}, [editor, projectId])
 
 	// פרויקט שלא קיים — חזרה למסך הראשי
 	useEffect(() => {
