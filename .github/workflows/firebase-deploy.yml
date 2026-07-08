@@ -39,3 +39,15 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ vars.FIREBASE_PROJECT_ID }}
           channelId: live
+
+      # פריסת חוקי האבטחה של Firestore. לא מפיל את ה-workflow אם
+      # מסד ה-Firestore עוד לא נוצר בקונסולה.
+      - name: Deploy Firestore rules
+        continue-on-error: true
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" \
+            npx firebase-tools deploy --only firestore:rules \
+            --project "${{ vars.FIREBASE_PROJECT_ID }}" --non-interactive

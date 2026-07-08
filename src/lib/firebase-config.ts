@@ -18,6 +18,15 @@ export interface FirebaseWebConfig {
 	storageBucket?: string
 	messagingSenderId?: string
 	appId: string
+	measurementId?: string
 }
 
-export const firebaseConfig: FirebaseWebConfig | null = null
+export const firebaseConfig: FirebaseWebConfig | null = {
+	apiKey: 'AIzaSyAKoTwRY6oq6sYG6H4IfZ5oxiZw53Yi93A',
+	authDomain: 'infinite-canvas-dd389.firebaseapp.com',
+	projectId: 'infinite-canvas-dd389',
+	storageBucket: 'infinite-canvas-dd389.firebasestorage.app',
+	messagingSenderId: '566279178343',
+	appId: '1:566279178343:web:0d9953d31d6a521d9aecc2',
+	measurementId: 'G-1PGWK1S1C7',
+}
