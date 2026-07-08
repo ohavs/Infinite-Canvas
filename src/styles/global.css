@@ -3,8 +3,13 @@
 @import '@fontsource/heebo/600.css';
 @import '@fontsource/heebo/700.css';
 
+/*
+ * שפת העיצוב: שמנת חמה, כרטיסים מעוגלים, צבע מבטא לבחירת המשתמש.
+ * ערכת הנושא (בהיר/כהה) והפלטה נקבעות ב-data-theme / data-palette על <html>.
+ * גווני העזר של המבטא (soft/wash) נגזרים אוטומטית מצבע המבטא.
+ */
+
 :root {
-	/* שפת העיצוב: שמנת חמה, כרטיסים לבנים מעוגלים, כתום שרוף */
 	--ic-bg: #f3eee6;
 	--ic-surface: #ffffff;
 	--ic-surface-2: #faf6ef;
@@ -16,9 +21,9 @@
 	--ic-ink-text: #fdfaf6;
 	--ic-accent: #e8722a;
 	--ic-accent-deep: #a8480e;
-	--ic-accent-soft: #f9d9ba;
-	--ic-accent-wash: #fbeedd;
 	--ic-accent-text: #ffffff;
+	--ic-accent-soft: color-mix(in srgb, var(--ic-accent) 32%, var(--ic-surface));
+	--ic-accent-wash: color-mix(in srgb, var(--ic-accent) 11%, var(--ic-surface));
 	--ic-danger: #cf3f1d;
 	--ic-shadow: 0 1px 2px rgba(63, 47, 26, 0.05), 0 10px 30px rgba(63, 47, 26, 0.07);
 	--ic-shadow-lg: 0 18px 50px rgba(63, 47, 26, 0.18);
@@ -27,25 +32,68 @@
 	--ic-radius-pill: 999px;
 }
 
-@media (prefers-color-scheme: dark) {
-	:root {
-		--ic-bg: #17120d;
-		--ic-surface: #221b14;
-		--ic-surface-2: #2a2119;
-		--ic-surface-hover: #2e251c;
-		--ic-border: #382d21;
-		--ic-text: #f3ece1;
-		--ic-text-soft: #a2968a;
-		--ic-ink: #f3ece1;
-		--ic-ink-text: #1c1610;
-		--ic-accent: #f08339;
-		--ic-accent-deep: #f8b276;
-		--ic-accent-soft: #57351a;
-		--ic-accent-wash: #34241582;
-		--ic-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.35);
-		--ic-shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.55);
-	}
+html[data-theme='dark'] {
+	--ic-bg: #16120d;
+	--ic-surface: #211b14;
+	--ic-surface-2: #292219;
+	--ic-surface-hover: #2e261c;
+	--ic-border: #382e21;
+	--ic-text: #f3ece1;
+	--ic-text-soft: #a2968a;
+	--ic-ink: #f3ece1;
+	--ic-ink-text: #1c1610;
+	--ic-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.35);
+	--ic-shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.55);
 }
+
+/* ------------------------------- פלטות ------------------------------- */
+
+html[data-palette='ocean'] {
+	--ic-accent: #2f6fed;
+	--ic-accent-deep: #1c4dbb;
+}
+
+html[data-palette='forest'] {
+	--ic-accent: #199155;
+	--ic-accent-deep: #0e6339;
+}
+
+html[data-palette='grape'] {
+	--ic-accent: #8b46e0;
+	--ic-accent-deep: #6527b4;
+}
+
+html[data-palette='rose'] {
+	--ic-accent: #e0447c;
+	--ic-accent-deep: #b02358;
+}
+
+/* במצב כהה — מבטא בהיר יותר לקריאות */
+html[data-theme='dark'] {
+	--ic-accent-deep: color-mix(in srgb, var(--ic-accent) 60%, #ffffff);
+}
+
+html[data-theme='dark'][data-palette='tangerine'] {
+	--ic-accent: #f08339;
+}
+
+html[data-theme='dark'][data-palette='ocean'] {
+	--ic-accent: #5b90f5;
+}
+
+html[data-theme='dark'][data-palette='forest'] {
+	--ic-accent: #34b673;
+}
+
+html[data-theme='dark'][data-palette='grape'] {
+	--ic-accent: #a56ef0;
+}
+
+html[data-theme='dark'][data-palette='rose'] {
+	--ic-accent: #ef6f9c;
+}
+
+/* -------------------------------- בסיס -------------------------------- */
 
 * {
 	box-sizing: border-box;
@@ -71,9 +119,89 @@ body {
 	background: var(--ic-bg);
 	color: var(--ic-text);
 	-webkit-font-smoothing: antialiased;
+	transition: background 0.2s;
 }
 
 button,
-input {
+input,
+textarea,
+select {
 	font-family: inherit;
+}
+
+/* ------------------------------- טוסטים ------------------------------- */
+
+.toast-host {
+	position: fixed;
+	bottom: 26px;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	z-index: 1000;
+	pointer-events: none;
+}
+
+.toast {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	background: var(--ic-ink);
+	color: var(--ic-ink-text);
+	border-radius: var(--ic-radius-pill);
+	padding: 11px 20px;
+	font-size: 13.5px;
+	font-weight: 600;
+	box-shadow: var(--ic-shadow-lg);
+	pointer-events: all;
+	animation: toast-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.toast-leaving {
+	animation: toast-out 0.2s ease forwards;
+}
+
+.toast-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.toast-success .toast-dot {
+	background: #3fca79;
+}
+
+.toast-error .toast-dot {
+	background: #ff7a5c;
+}
+
+.toast-info .toast-dot {
+	background: var(--ic-accent);
+}
+
+@keyframes toast-in {
+	from {
+		opacity: 0;
+		transform: translateY(14px) scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+@keyframes toast-out {
+	to {
+		opacity: 0;
+		transform: translateY(10px) scale(0.96);
+	}
+}
+
+@media print {
+	.toast-host {
+		display: none !important;
+	}
 }

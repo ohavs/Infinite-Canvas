@@ -25,6 +25,9 @@ import StarterKit from '@tiptap/starter-kit'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { IconBack, IconPdf, IconTrash } from '../components/icons'
+import { TableHoverControls } from '../components/TableHoverControls'
+import { ThemeControls } from '../components/ThemeControls'
+import { showToast } from '../components/toast'
 import { exportDocToDocx } from '../lib/docx-export'
 import {
 	getDocSettings,
@@ -39,6 +42,7 @@ import {
 } from '../lib/projects'
 import { ResizableImage } from '../lib/resizable-image'
 import { deleteSignature, listSignatures, saveSignature, trimCanvas } from '../lib/signatures'
+import { RtlTableColumnResize } from '../lib/table-extras'
 import { FontSize, LineHeight, ParagraphDirection } from '../lib/tiptap-extensions'
 import './doc-editor.css'
 
@@ -110,7 +114,9 @@ export function DocEditorPage() {
 	const [settings, setSettings] = useState<DocHeaderSettings>(() => getDocSettings(project))
 	const [showSettings, setShowSettings] = useState(false)
 	const [showSignaturePad, setShowSignaturePad] = useState(false)
+	const [linkDialog, setLinkDialog] = useState<{ href: string } | null>(null)
 	const saveTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
+	const scrollRef = useRef<HTMLElement>(null)
 
 	const editor = useEditor({
 		extensions: [
@@ -131,10 +137,13 @@ export function DocEditorPage() {
 			CharacterCount,
 			TaskList,
 			TaskItem.configure({ nested: true }),
-			Table.configure({ resizable: true }),
+			// handleWidth שלילי מנטרל את מנגנון הגרירה המובנה (שאינו תומך RTL)
+			// אך משאיר את רינדור רוחבי העמודות; הגרירה עצמה ב-RtlTableColumnResize
+			Table.configure({ resizable: true, handleWidth: -1 }),
 			TableRow,
 			TableCell,
 			TableHeader,
+			RtlTableColumnResize,
 			ResizableImage,
 		],
 		content: (loadDocContent(projectId) as object | null) ?? undefined,
@@ -190,16 +199,32 @@ export function DocEditorPage() {
 
 	const handleExportDocx = useCallback(async () => {
 		if (!editor) return
-		const headerLines = [
-			...(settings.showDate ? [headerDateFormat.format(Date.now())] : []),
-			...settings.address.split('\n').filter((l) => l.trim()),
-		]
-		await exportDocToDocx(editor.getJSON(), project?.name || 'document', {
-			headerTitle: settings.showName ? project?.name : undefined,
-			headerLines,
-			pageNumbers: settings.pageNumbers,
-		})
+		try {
+			const headerLines = [
+				...(settings.showDate ? [headerDateFormat.format(Date.now())] : []),
+				...settings.address.split('\n').filter((l) => l.trim()),
+			]
+			await exportDocToDocx(editor.getJSON(), project?.name || 'document', {
+				headerTitle: settings.showName ? project?.name : undefined,
+				headerLines,
+				pageNumbers: settings.pageNumbers,
+			})
+			showToast('קובץ ה-Word ירד בהצלחה', 'success')
+		} catch (e) {
+			console.error(e)
+			showToast('הייצוא ל-Word נכשל', 'error')
+		}
 	}, [editor, project?.name, settings])
+
+	const openLinkDialog = useCallback(() => {
+		if (!editor) return
+		if (editor.isActive('link')) {
+			editor.chain().focus().unsetLink().run()
+			showToast('הקישור הוסר', 'info')
+			return
+		}
+		setLinkDialog({ href: '' })
+	}, [editor])
 
 	const insertSignature = useCallback(
 		(src: string) => {
@@ -235,6 +260,7 @@ export function DocEditorPage() {
 				/>
 				<span className="doc-words">{words} מילים</span>
 				<div className="doc-topbar-actions">
+					<ThemeControls />
 					<button
 						className="doc-btn doc-btn-ghost"
 						title="הגדרות המסמך"
@@ -256,6 +282,7 @@ export function DocEditorPage() {
 					editor={editor}
 					onInsertSignature={insertSignature}
 					onNewSignature={() => setShowSignaturePad(true)}
+					onOpenLink={openLinkDialog}
 				/>
 			)}
 
@@ -283,15 +310,16 @@ export function DocEditorPage() {
 						<button
 							className={`doc-tool ${editor.isActive('link') ? 'active' : ''}`}
 							title="קישור"
-							onClick={() => toggleLink(editor)}
+							onClick={openLinkDialog}
 						>
-							🔗
+							<LinkGlyph />
 						</button>
 					</div>
 				</BubbleMenu>
 			)}
 
-			<main className="doc-scroll">
+			<main className="doc-scroll" ref={scrollRef}>
+				{editor && <TableHoverControls editor={editor} scrollRef={scrollRef} />}
 				<div className="doc-sheet-wrap">
 					<div className={`doc-sheet ${hasHeader ? 'has-header' : ''}`}>
 						{hasHeader && (
@@ -334,9 +362,81 @@ export function DocEditorPage() {
 						saveSignature(dataUrl)
 						insertSignature(dataUrl)
 						setShowSignaturePad(false)
+						showToast('החתימה נשמרה ונוספה למסמך', 'success')
 					}}
 				/>
 			)}
+
+			{linkDialog && editor && (
+				<LinkDialog
+					initialHref={linkDialog.href}
+					onClose={() => setLinkDialog(null)}
+					onSubmit={(href) => {
+						editor.chain().focus().extendMarkRange('link').setLink({ href }).run()
+						setLinkDialog(null)
+						showToast('הקישור נוסף', 'success')
+					}}
+				/>
+			)}
+		</div>
+	)
+}
+
+/* ----------------------------- דיאלוג קישור ----------------------------- */
+
+function LinkDialog({
+	initialHref,
+	onClose,
+	onSubmit,
+}: {
+	initialHref: string
+	onClose: () => void
+	onSubmit: (href: string) => void
+}) {
+	const [url, setUrl] = useState(initialHref)
+
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') onClose()
+		}
+		window.addEventListener('keydown', onKey)
+		return () => window.removeEventListener('keydown', onKey)
+	}, [onClose])
+
+	const submit = () => {
+		const trimmed = url.trim()
+		if (!trimmed) return
+		onSubmit(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`)
+	}
+
+	return (
+		<div className="modal-backdrop" onClick={onClose}>
+			<div className="modal" role="dialog" aria-modal onClick={(e) => e.stopPropagation()}>
+				<h3>הוספת קישור</h3>
+				<form
+					onSubmit={(e) => {
+						e.preventDefault()
+						submit()
+					}}
+				>
+					<input
+						className="text-input"
+						dir="ltr"
+						value={url}
+						autoFocus
+						placeholder="www.example.com"
+						onChange={(e) => setUrl(e.target.value)}
+					/>
+					<div className="modal-actions">
+						<button type="button" className="btn btn-ghost" onClick={onClose}>
+							ביטול
+						</button>
+						<button type="submit" className="btn btn-accent" disabled={!url.trim()}>
+							הוספה
+						</button>
+					</div>
+				</form>
+			</div>
 		</div>
 	)
 }
@@ -548,25 +648,16 @@ function SignatureDialog({
 
 /* ------------------------------ סרגל כלים ------------------------------ */
 
-function toggleLink(editor: TipTapEditor) {
-	if (editor.isActive('link')) {
-		editor.chain().focus().unsetLink().run()
-		return
-	}
-	const url = window.prompt('כתובת הקישור:')
-	if (!url) return
-	const href = /^https?:\/\//i.test(url) ? url : `https://${url}`
-	editor.chain().focus().extendMarkRange('link').setLink({ href }).run()
-}
-
 function Toolbar({
 	editor,
 	onInsertSignature,
 	onNewSignature,
+	onOpenLink,
 }: {
 	editor: TipTapEditor
 	onInsertSignature: (src: string) => void
 	onNewSignature: () => void
+	onOpenLink: () => void
 }) {
 	const [openMenu, setOpenMenu] = useState<string | null>(null)
 	const [signatures, setSignatures] = useState<string[]>(() => listSignatures())
@@ -618,43 +709,48 @@ function Toolbar({
 
 			<span className="doc-sep" />
 
-			{/* סגנון פסקה, גופן וגודל */}
-			<select className="doc-select" value={blockValue} onChange={(e) => setBlock(e.target.value)} title="סגנון פסקה">
-				<option value="p">טקסט רגיל</option>
-				<option value="h1">כותרת 1</option>
-				<option value="h2">כותרת 2</option>
-				<option value="h3">כותרת 3</option>
-			</select>
+			{/* סגנון פסקה, גופן וגודל — תפריטים מעוצבים */}
+			<SelectDropdown
+				id="block"
+				openMenu={openMenu}
+				setOpenMenu={setOpenMenu}
+				title="סגנון פסקה"
+				width={104}
+				value={blockValue}
+				options={[
+					['p', 'טקסט רגיל'],
+					['h1', 'כותרת 1'],
+					['h2', 'כותרת 2'],
+					['h3', 'כותרת 3'],
+				]}
+				onSelect={setBlock}
+			/>
 
-			<select
-				className="doc-select"
+			<SelectDropdown
+				id="font"
+				openMenu={openMenu}
+				setOpenMenu={setOpenMenu}
+				title="גופן"
+				width={128}
 				value={(editor.getAttributes('textStyle').fontFamily as string) ?? ''}
-				onChange={(e) => {
-					const v = e.target.value
+				options={FONT_FAMILIES.map(([value, label]) => [value, label] as [string, string])}
+				optionStyle={(value) => (value ? { fontFamily: value } : undefined)}
+				onSelect={(v) => {
 					if (v) editor.chain().focus().setFontFamily(v).run()
 					else editor.chain().focus().unsetFontFamily().run()
 				}}
-				title="גופן"
-			>
-				{FONT_FAMILIES.map(([value, label]) => (
-					<option key={label} value={value}>
-						{label}
-					</option>
-				))}
-			</select>
+			/>
 
-			<select
-				className="doc-select doc-select-narrow"
-				value={(editor.getAttributes('textStyle').fontSize as string) ?? '16px'}
-				onChange={(e) => editor.chain().focus().setFontSize(e.target.value).run()}
+			<SelectDropdown
+				id="fontsize"
+				openMenu={openMenu}
+				setOpenMenu={setOpenMenu}
 				title="גודל גופן"
-			>
-				{FONT_SIZES.map((size) => (
-					<option key={size} value={size}>
-						{parseInt(size)}
-					</option>
-				))}
-			</select>
+				width={58}
+				value={(editor.getAttributes('textStyle').fontSize as string) ?? '16px'}
+				options={FONT_SIZES.map((size) => [size, String(parseInt(size))] as [string, string])}
+				onSelect={(v) => editor.chain().focus().setFontSize(v).run()}
+			/>
 
 			<span className="doc-sep" />
 
@@ -804,11 +900,11 @@ function Toolbar({
 			<span className="doc-sep" />
 
 			{/* הוספות */}
-			<button className={`doc-tool ${editor.isActive('link') ? 'active' : ''}`} title="קישור" onClick={() => toggleLink(editor)}>
-				🔗
+			<button className={`doc-tool ${editor.isActive('link') ? 'active' : ''}`} title="קישור" onClick={onOpenLink}>
+				<LinkGlyph />
 			</button>
 			<button className="doc-tool" title="הוספת תמונה" onClick={() => imageInputRef.current?.click()}>
-				🖼
+				<ImageGlyph />
 			</button>
 			<Dropdown
 				id="signature"
@@ -947,6 +1043,61 @@ function AlignBtn({
 		>
 			<AlignGlyph align={align} />
 		</button>
+	)
+}
+
+/** תחליף מעוצב ל-select — כפתור עם תווית נוכחית ופאנל אפשרויות */
+function SelectDropdown({
+	id,
+	openMenu,
+	setOpenMenu,
+	title,
+	width,
+	value,
+	options,
+	optionStyle,
+	onSelect,
+}: {
+	id: string
+	openMenu: string | null
+	setOpenMenu: (id: string | null) => void
+	title: string
+	width: number
+	value: string
+	options: [string, string][]
+	optionStyle?: (value: string) => React.CSSProperties | undefined
+	onSelect: (value: string) => void
+}) {
+	const current = options.find(([v]) => v === value) ?? options[0]
+	return (
+		<span className="doc-dropdown">
+			<button
+				className={`doc-select-btn ${openMenu === id ? 'open' : ''}`}
+				style={{ width }}
+				title={title}
+				onClick={() => setOpenMenu(openMenu === id ? null : id)}
+			>
+				<span className="doc-select-btn-label">{current[1]}</span>
+				<small>▾</small>
+			</button>
+			{openMenu === id && (
+				<div className="doc-dropdown-panel doc-select-panel">
+					{options.map(([v, label]) => (
+						<button
+							key={v || '_default'}
+							className={`doc-menu-item ${v === value ? 'selected' : ''}`}
+							style={optionStyle?.(v)}
+							onClick={() => {
+								onSelect(v)
+								setOpenMenu(null)
+							}}
+						>
+							{label}
+						</button>
+					))}
+				</div>
+			)}
+		</span>
 	)
 }
 
@@ -1094,6 +1245,26 @@ function EraserGlyph() {
 			<path d="M6 20h14" />
 			<path d="M9.5 19.5l-5-5a2 2 0 010-2.8l7-7a2 2 0 012.8 0l4.5 4.5a2 2 0 010 2.8l-7.5 7.5z" />
 			<path d="M8 9l7 7" />
+		</svg>
+	)
+}
+
+function LinkGlyph() {
+	return (
+		<svg {...svgProps()}>
+			<path d="M9.5 14.5l5-5" />
+			<path d="M8 12l-2.2 2.2a3.8 3.8 0 105.4 5.4L13.4 17" />
+			<path d="M16 12l2.2-2.2a3.8 3.8 0 10-5.4-5.4L10.6 7" />
+		</svg>
+	)
+}
+
+function ImageGlyph() {
+	return (
+		<svg {...svgProps()}>
+			<rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+			<circle cx="9" cy="10" r="1.6" />
+			<path d="M4.5 17l4.5-4 3.5 3 2.8-2.4 4.2 3.4" />
 		</svg>
 	)
 }

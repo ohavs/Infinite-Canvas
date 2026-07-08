@@ -20,6 +20,8 @@ import {
 import 'tldraw/tldraw.css'
 import { getAssetUrlsByImport } from '@tldraw/assets/imports.vite'
 import { IconBack, IconPage, IconPdf, IconPlus } from '../components/icons'
+import { ThemeControls } from '../components/ThemeControls'
+import { showToast } from '../components/toast'
 import { A4_GAP, A4_PX, exportCurrentPageToPdf, findA4Frames } from '../lib/pdf'
 import {
 	getProject,
@@ -69,8 +71,9 @@ function pickAndLoadTldrFile(editor: Editor, onLoaded: () => void) {
 		const ok = loadTldrJson(editor, await file.text())
 		if (ok) {
 			onLoaded()
+			showToast('הקובץ נטען בהצלחה', 'success')
 		} else {
-			window.alert('הקובץ אינו קובץ ‎.tldr תקין')
+			showToast('הקובץ אינו קובץ ‎.tldr תקין', 'error')
 		}
 	}
 	input.click()
@@ -307,7 +310,8 @@ async function handleExportPdf(editor: Editor, projectId: string) {
 		fileName: project?.name || 'canvas',
 		mode: projectMode(project),
 	})
-	if (!ok) window.alert('הקנבס ריק — אין מה לייצא')
+	if (ok) showToast('קובץ ה-PDF ירד בהצלחה', 'success')
+	else showToast('הקנבס ריק — אין מה לייצא', 'error')
 }
 
 /** תפריט ראשי של tldraw בתוספת פעולות קובץ של האפליקציה */
@@ -420,6 +424,7 @@ function ProjectPanel() {
 			>
 				<IconPdf size={15} /> {exporting ? 'מייצא...' : 'PDF'}
 			</button>
+			<ThemeControls />
 		</div>
 	)
 }

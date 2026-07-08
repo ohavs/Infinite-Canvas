@@ -18,13 +18,13 @@
 	--color-divider: #ece4d7;
 	--color-text-1: #211c15;
 	--color-text-3: #948a7c;
-	--color-selected: #e8722a;
-	--color-selection-stroke: #e8722a;
-	--color-selection-fill: rgba(232, 114, 42, 0.09);
-	--color-brush-stroke: rgba(232, 114, 42, 0.65);
-	--color-brush-fill: rgba(232, 114, 42, 0.06);
-	--color-hint: rgba(232, 114, 42, 0.16);
-	--color-focus: #e8722a;
+	--color-selected: var(--ic-accent);
+	--color-selection-stroke: var(--ic-accent);
+	--color-selection-fill: color-mix(in srgb, var(--ic-accent) 9%, transparent);
+	--color-brush-stroke: color-mix(in srgb, var(--ic-accent) 65%, transparent);
+	--color-brush-fill: color-mix(in srgb, var(--ic-accent) 6%, transparent);
+	--color-hint: color-mix(in srgb, var(--ic-accent) 16%, transparent);
+	--color-focus: var(--ic-accent);
 	--color-grid: rgba(97, 71, 39, 0.25);
 }
 
@@ -135,7 +135,7 @@
 	border: none;
 	border-radius: 50%;
 	color: #fff;
-	background: #e8722a;
+	background: var(--ic-accent);
 	text-decoration: none;
 	cursor: pointer;
 	flex-shrink: 0;
@@ -143,7 +143,7 @@
 }
 
 .project-panel-back:hover {
-	background: #a8480e;
+	background: var(--ic-accent-deep);
 }
 
 .project-panel-name {
@@ -193,25 +193,48 @@
 	font-weight: 700;
 	font-family: inherit;
 	cursor: pointer;
+	/* מסך הקנבס תמיד בהיר — צבעים קבועים ולא לפי ערכת הנושא */
 	background: #191510;
 	color: #fdfaf6;
 	flex-shrink: 0;
 	transition: background 0.15s;
 }
 
-.editor-page .tl-theme__dark .project-panel-pdf {
-	background: #f3ece1;
-	color: #1c1610;
-}
-
 .project-panel-pdf:hover {
-	background: #a8480e;
+	background: var(--ic-accent-deep);
 	color: #fff;
 }
 
 .project-panel-pdf:disabled {
 	opacity: 0.6;
 	cursor: default;
+}
+
+/* כפתורי ערכת הנושא בתוך פאנל הקנבס — מותאמים לפאנל הבהיר של tldraw */
+.project-panel .theme-btn {
+	width: 30px;
+	height: 30px;
+	background: var(--color-panel);
+	border-color: var(--color-low-border);
+	color: var(--color-text-1);
+}
+
+.project-panel .theme-btn:hover {
+	background: var(--color-muted-2);
+	color: var(--ic-accent);
+}
+
+.project-panel .theme-picker {
+	background: var(--color-panel);
+	border-color: var(--color-low-border);
+}
+
+.project-panel .theme-palette-option {
+	color: var(--color-text-1);
+}
+
+.project-panel .theme-palette-option:hover {
+	background: var(--color-muted-2);
 }
 
 /* כפתור "הוספת דף" צף מתחת לדף ה-A4 האחרון */
@@ -238,8 +261,8 @@
 }
 
 .add-a4-page-btn:hover {
-	color: #e8722a;
-	border-color: #e8722a;
+	color: var(--ic-accent);
+	border-color: var(--ic-accent);
 }
 
 @media (max-width: 640px) {

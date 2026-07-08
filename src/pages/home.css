@@ -71,6 +71,12 @@
 	color: var(--ic-ink-text);
 }
 
+.topbar-side {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
 .topbar-date {
 	display: inline-flex;
 	align-items: center;
@@ -91,34 +97,91 @@
 	max-width: 1240px;
 	width: 100%;
 	margin: 0 auto;
-	padding: 30px 20px 72px;
+	padding: 26px 20px 72px;
 }
 
-.hero {
+/* ------------------------------ באנר פתיחה ------------------------------ */
+
+.hero-banner {
+	position: relative;
+	overflow: hidden;
 	display: flex;
-	align-items: flex-end;
+	align-items: center;
 	justify-content: space-between;
-	gap: 18px;
+	gap: 22px;
 	flex-wrap: wrap;
-	margin-bottom: 22px;
+	background:
+		linear-gradient(120deg, color-mix(in srgb, var(--ic-accent) 14%, var(--ic-surface)), var(--ic-surface) 62%);
+	border: 1px solid var(--ic-border);
+	border-radius: calc(var(--ic-radius) + 6px);
+	box-shadow: var(--ic-shadow);
+	padding: 30px 32px;
+	margin-bottom: 26px;
 }
 
-.hero h1 {
+.hero-banner-art {
+	position: absolute;
+	inset: 0;
+	color: var(--ic-accent);
+	pointer-events: none;
+}
+
+.hero-banner-art svg {
+	width: 100%;
+	height: 100%;
+}
+
+.hero-banner-content {
+	position: relative;
+	min-width: 240px;
+}
+
+.hero-banner h1 {
 	margin: 0;
-	font-size: 40px;
+	font-size: 32px;
 	font-weight: 700;
 	letter-spacing: -0.02em;
 }
 
 .hero-sub {
-	margin: 6px 0 0;
+	margin: 8px 0 0;
 	color: var(--ic-text-soft);
-	font-size: 14px;
+	font-size: 14.5px;
+	max-width: 480px;
+	line-height: 1.6;
+}
+
+.hero-meta {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin-top: 16px;
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--ic-text-soft);
+}
+
+.hero-meta i {
+	width: 4px;
+	height: 4px;
+	border-radius: 50%;
+	background: var(--ic-accent);
+	opacity: 0.6;
 }
 
 .hero-actions {
+	position: relative;
 	display: flex;
+	flex-direction: column;
+	align-items: stretch;
 	gap: 10px;
+}
+
+.grid-title h2 {
+	margin: 0 0 14px;
+	font-size: 18px;
+	font-weight: 700;
 }
 
 /* -------------------------------- כפתורים -------------------------------- */
@@ -188,62 +251,6 @@
 .btn-lg {
 	padding: 13px 26px;
 	font-size: 15px;
-}
-
-/* ------------------------------ שורת נתונים ------------------------------ */
-
-.stats-row {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-	gap: 14px;
-	margin-bottom: 28px;
-}
-
-.stat-card {
-	background: var(--ic-surface);
-	border: 1px solid var(--ic-border);
-	border-radius: var(--ic-radius);
-	box-shadow: var(--ic-shadow);
-	padding: 16px 18px;
-	display: flex;
-	align-items: center;
-	gap: 14px;
-}
-
-.stat-icon {
-	width: 46px;
-	height: 46px;
-	border-radius: var(--ic-radius-sm);
-	display: grid;
-	place-items: center;
-	flex-shrink: 0;
-}
-
-.stat-icon-deep {
-	background: var(--ic-accent-deep);
-	color: #fff;
-}
-
-.stat-icon-mid {
-	background: var(--ic-accent);
-	color: #fff;
-}
-
-.stat-icon-soft {
-	background: var(--ic-accent-soft);
-	color: var(--ic-accent-deep);
-}
-
-.stat-card strong {
-	display: block;
-	font-size: 17px;
-	font-weight: 700;
-	line-height: 1.2;
-}
-
-.stat-card span:not(.stat-icon) {
-	font-size: 12.5px;
-	color: var(--ic-text-soft);
 }
 
 /* ------------------------------ מצב ריק ------------------------------ */
@@ -589,8 +596,17 @@
 }
 
 @media (max-width: 560px) {
-	.hero h1 {
-		font-size: 30px;
+	.hero-banner {
+		padding: 22px 20px;
+	}
+
+	.hero-banner h1 {
+		font-size: 25px;
+	}
+
+	.hero-actions {
+		flex-direction: row;
+		width: 100%;
 	}
 
 	.topbar-nav {

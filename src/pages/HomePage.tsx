@@ -10,11 +10,11 @@ import {
 	IconPage,
 	IconPencil,
 	IconPlus,
-	IconShield,
 	IconTextDoc,
 	IconTrash,
 	Logo,
 } from '../components/icons'
+import { ThemeControls } from '../components/ThemeControls'
 import {
 	createProject,
 	deleteProject,
@@ -36,6 +36,14 @@ const headerDate = new Intl.DateTimeFormat('he-IL', {
 	month: 'long',
 	year: 'numeric',
 })
+
+function greeting(): string {
+	const hour = new Date().getHours()
+	if (hour >= 5 && hour < 12) return 'בוקר של יצירה ✨'
+	if (hour >= 12 && hour < 17) return 'צהריים טובים, יוצרים?'
+	if (hour >= 17 && hour < 21) return 'ערב טוב, הקנבס מחכה'
+	return 'לילה של רעיונות 🌙'
+}
 
 function formatUpdatedAt(timestamp: number): string {
 	const diffMs = timestamp - Date.now()
@@ -105,58 +113,66 @@ export function HomePage() {
 							<IconLayers size={15} /> הפרויקטים שלי
 						</span>
 					</nav>
-					<div className="topbar-date">
-						<IconClock size={14} />
-						<span>{headerDate.format(Date.now())}</span>
+					<div className="topbar-side">
+						<span className="topbar-date">
+							<IconClock size={14} />
+							<span>{headerDate.format(Date.now())}</span>
+						</span>
+						<ThemeControls />
 					</div>
 				</div>
 			</header>
 
 			<main className="home-main">
-				<section className="hero">
-					<div>
-						<h1>סקירה</h1>
-						<p className="hero-sub">כל הלוחות שלך במקום אחד — נשמרים אוטומטית בדפדפן</p>
+				<section className="hero-banner">
+					<div className="hero-banner-art" aria-hidden>
+						<svg viewBox="0 0 200 120" preserveAspectRatio="none">
+							<path
+								d="M-10 95c30-45 55-65 78-52 18 10 8 38 26 44 22 8 40-30 62-38 18-7 34 2 54 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="10"
+								strokeLinecap="round"
+								opacity="0.16"
+							/>
+							<path
+								d="M-10 112c34-30 60-42 84-33 20 8 16 26 36 28 24 2 38-24 60-28 16-3 30 4 40 14"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="6"
+								strokeLinecap="round"
+								opacity="0.3"
+							/>
+						</svg>
+					</div>
+					<div className="hero-banner-content">
+						<h1>{greeting()}</h1>
+						<p className="hero-sub">
+							קנבס אינסופי, דפי A4 ומסמכי טקסט — הכל נשמר אוטומטית אצלך בדפדפן.
+						</p>
+						<div className="hero-meta">
+							<span>{projects.length} פרויקטים</span>
+							<i />
+							<span>עדכון אחרון: {lastUpdated}</span>
+							<i />
+							<span>שמירה מקומית, בלי חשבון</span>
+						</div>
 					</div>
 					<div className="hero-actions">
+						<button className="btn btn-ink btn-lg" onClick={() => setCreating(true)}>
+							<IconPlus size={16} /> פרויקט חדש
+						</button>
 						<button className="btn btn-ghost" onClick={() => fileInputRef.current?.click()}>
 							<IconImport size={16} /> ייבוא ‎.tldr
-						</button>
-						<button className="btn btn-ink" onClick={() => setCreating(true)}>
-							<IconPlus size={16} /> פרויקט חדש
 						</button>
 					</div>
 				</section>
 
-				<section className="stats-row" aria-label="נתונים כלליים">
-					<div className="stat-card">
-						<span className="stat-icon stat-icon-deep">
-							<IconLayers />
-						</span>
-						<div>
-							<strong>{projects.length}</strong>
-							<span>פרויקטים</span>
-						</div>
+				{projects.length > 0 && (
+					<div className="grid-title">
+						<h2>הפרויקטים שלך</h2>
 					</div>
-					<div className="stat-card">
-						<span className="stat-icon stat-icon-mid">
-							<IconClock size={18} />
-						</span>
-						<div>
-							<strong>{lastUpdated}</strong>
-							<span>עדכון אחרון</span>
-						</div>
-					</div>
-					<div className="stat-card">
-						<span className="stat-icon stat-icon-soft">
-							<IconShield />
-						</span>
-						<div>
-							<strong>שמירה מקומית</strong>
-							<span>אוטומטית, בלי חשבון</span>
-						</div>
-					</div>
-				</section>
+				)}
 
 				{projects.length === 0 ? (
 					<section className="home-empty">
